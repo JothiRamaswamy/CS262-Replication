@@ -1,8 +1,7 @@
 import socket
 import curses
-from time import sleep
 
-from menu import start_menu
+from menu import menu
 
 PORT = 5050
 HEADER = 64
@@ -27,10 +26,17 @@ def send(msg):
 
 def start():
   
-  #print("A")
-  #sleep(1)
-  option, name = curses.wrapper(start_menu)
-  print(name)
+  # start menu, lets user pick their first action
+  actions = ["Login", "Create account", "List accounts", "Delete account"]
+  message = "\nWelcome to ChatBot! What would you like to do?\n\n"
+  option, name = curses.wrapper(menu, actions, message)
+
+  print(option, name)
+
+  # user menu, lets logged-in user pick what they'd like to do
+  actions = ["Send messages", "View my messages"]
+  message = "\nMy Account\n\n"
+  option, name = curses.wrapper(menu, actions, message)
 
   print("\nInput a message and press enter to share it with the server. Enter STOP to terminate.\n")
   while True:

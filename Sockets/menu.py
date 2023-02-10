@@ -2,8 +2,7 @@
 
 import curses
 
-def start_menu(stdscr):
-  classes = ["Login", "Create account", "List accounts", "Delete account"]
+def menu(stdscr, classes, message):
   attributes = {}
   curses.init_pair(1, curses.COLOR_WHITE, curses.COLOR_BLACK)
   attributes['normal'] = curses.color_pair(1)
@@ -15,7 +14,7 @@ def start_menu(stdscr):
   option = 0  # the current option that is marked
   while True:  # Enter in ascii
     stdscr.erase()
-    stdscr.addstr("\nWelcome to ChatBot! What would you like to do?\n\n")
+    stdscr.addstr(message)
     for i in range(len(classes)):
       if i == option:
         attr = attributes['highlighted']
@@ -43,7 +42,7 @@ def start_menu(stdscr):
   #stdscr.addstr("You chose {0}".format(classes[option]))
   #stdscr.getch()
 
-#option, name = curses.wrapper(menu)
+#option, name = curses.wrapper(menu, ["Login", "Create account", "List accounts", "Delete account"])
 
 #print(option, name)
 
