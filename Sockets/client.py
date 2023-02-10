@@ -1,7 +1,8 @@
 import socket
 import curses
+from time import sleep
 
-from menu import menu
+from menu import start_menu
 
 PORT = 5050
 HEADER = 64
@@ -25,8 +26,11 @@ def send(msg):
   # print(client.recv(2048).decode(FORMAT)) # print message received
 
 def start():
-
-  option, name = curses.wrapper(menu)
+  
+  #print("A")
+  #sleep(1)
+  option, name = curses.wrapper(start_menu)
+  print(name)
 
   print("\nInput a message and press enter to share it with the server. Enter STOP to terminate.\n")
   while True:

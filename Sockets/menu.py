@@ -2,8 +2,8 @@
 
 import curses
 
-def menu(stdscr):
-  classes = ["Create account", "List accounts", "Delete account"]
+def start_menu(stdscr):
+  classes = ["Login", "Create account", "List accounts", "Delete account"]
   attributes = {}
   curses.init_pair(1, curses.COLOR_WHITE, curses.COLOR_BLACK)
   attributes['normal'] = curses.color_pair(1)
@@ -27,13 +27,13 @@ def menu(stdscr):
     c = stdscr.getch()
     if c == 10: # this means enter key has been pressed
       break
-    elif c == curses.KEY_UP and option >= 0:
-      if option == 0:
-        option = 2
+    elif c == curses.KEY_UP:
+      if option == 0: # go back to bottom of list
+        option = len(classes) - 1
       else:
         option -= 1
-    elif c == curses.KEY_DOWN and option < len(classes):
-      if option == 2:
+    elif c == curses.KEY_DOWN:
+      if option == len(classes) - 1: # go back to top of list
         option = 0
       else:
         option += 1
@@ -43,4 +43,8 @@ def menu(stdscr):
   #stdscr.addstr("You chose {0}".format(classes[option]))
   #stdscr.getch()
 
-curses.wrapper(menu)
+#option, name = curses.wrapper(menu)
+
+#print(option, name)
+
+#input("Type message: ")
