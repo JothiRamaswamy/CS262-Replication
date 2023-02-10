@@ -28,7 +28,7 @@ def start():
   
   # start menu, lets user pick their first action
   actions = ["Login", "Create account", "List accounts", "Delete account"]
-  message = "\nWelcome to ChatBot! What would you like to do?\n\n"
+  message = "\nWelcome to Messenger! What would you like to do?\n\n"
   option, name = curses.wrapper(menu, actions, message)
 
   print(option, name)
@@ -38,7 +38,7 @@ def start():
   message = "\nMy Account\n\n"
   option, name = curses.wrapper(menu, actions, message)
 
-  print("\nInput a message and press enter to share it with the server. Enter STOP to terminate.\n")
+  print("\nInput a message and press enter to share, or type STOP to end the chat.\n")
   while True:
     message = input("Message: ")
     if message == "STOP":
