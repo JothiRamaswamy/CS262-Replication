@@ -37,7 +37,7 @@ def menu(stdscr, classes, message):
       else:
         option += 1
 
-  return [option, classes[option]]
+  return classes[option]
 
   #stdscr.addstr("You chose {0}".format(classes[option]))
   #stdscr.getch()
