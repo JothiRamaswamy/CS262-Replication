@@ -64,10 +64,10 @@ def start():
         send(Operations.SEND_MESSAGE, message)
 
     elif user_choice == "View my messages": # TODO
-      pass
+      print("TODO")
 
   elif name == "List accounts": # TODO
-    pass
+    print("TODO")
 
   elif name == "Delete account":
     print("\nWelcome to messenger! Please input a username to delete an account.\n")
