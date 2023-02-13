@@ -50,6 +50,7 @@ def handle_client(conn, addr):
         pass
       elif operation == Operations.LIST_ACCOUNTS: # TODO
         pass
+      
       elif operation == Operations.LOGIN: # TODO
         data = login(info)
         serialize_data = serialize(data)
@@ -112,6 +113,12 @@ def view_msgs(username):
         return {"operation": Operations.LIST_OF_MESSAGES, "info": messages}
     return {"operation": Operations.ACCOUNT_DOES_NOT_EXIST, "info": ""}
 
+
+def delete_account(username):
+  if username not in USERS:
+    return {"status": Operations.ACCOUNT_DOES_NOT_EXIST}
+  del USERS[username]
+  return {"status": Operations.SUCCESS}
 
 print("[STARTING] Server is starting at IPv4 Address " + str(SERVER) + " ...")
 start()

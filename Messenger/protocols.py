@@ -15,12 +15,12 @@ def deserialize(data):
     decoded_data = {}
     VERSION_SIZE = data[0]
     if VERSION_SIZE != VERSION:
-        return "Wire Protocols do not match up"
+        return "Wire Protocols do not match"
     decoded_data["version"] = VERSION_SIZE
     decoded_data["operation"] = data[1:3]
     decoded_data["info"] = data[3:]
 
     return decoded_data
 
-# Client to server: " LENGTH VERSION OPERATION MESSAGE "
-# Server to client: " LENGTH VERSION OPERATION MESSAGE "
+# Client to server: " LENGTH " then " VERSION OPERATION MESSAGE "
+# Server to client: " LENGTH " then " VERSION OPERATION MESSAGE "
