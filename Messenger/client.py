@@ -69,7 +69,10 @@ def start():
   elif name == "List accounts": # TODO
     pass
 
-  elif name == "Delete account": # TODO
-    pass
+  elif name == "Delete account":
+    print("\nWelcome to messenger! Please input a username to delete an account.\n")
+    account_name = input("Username: ")
+    
+    send(Operations.DELETE_ACCOUNT, account_name)
 
 start()

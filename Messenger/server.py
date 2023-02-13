@@ -39,13 +39,15 @@ def handle_client(conn, addr):
         if status == Operations.SUCCESS:
           conn.send("     ... account created successfully\n".encode(FORMAT))
           print(USERS)
-
-           # TODO: communicate with client what happened on server
-
         else:
           conn.send("\nThe username you have entered already exists. Please try again with another username.\n".encode(FORMAT))
       elif operation == Operations.DELETE_ACCOUNT: # TODO
-        pass
+        status = delete_account(info)["status"]
+        if status == Operations.SUCCESS:
+          conn.send("     ... account deleted successfully\n".encode(FORMAT))
+          print(USERS)
+        else:
+          conn.send("\nThe username entered does not exist on the server. Please try again.\n".encode(FORMAT))
       elif operation == Operations.LIST_ACCOUNTS: # TODO
         pass
       elif operation == Operations.LOGIN: # TODO
@@ -67,11 +69,17 @@ def start(): # handle and distribute new connections
     thread.start()
     print(f"[ACTIVE CONNECTIONS] {threading.active_count() - 1}")
 
-def create_account(username): # function to create an account
+def create_account(username):
   if username in USERS:
     return {"status": Operations.ACCOUNT_ALREADY_EXISTS}
   new_user = user(username)
   USERS[username] = new_user
+  return {"status": Operations.SUCCESS}
+
+def delete_account(username):
+  if username not in USERS:
+    return {"status": Operations.ACCOUNT_DOES_NOT_EXIST}
+  del USERS[username]
   return {"status": Operations.SUCCESS}
 
 print("[STARTING] Server is starting at IPv4 Address " + str(SERVER) + " ...")
