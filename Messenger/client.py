@@ -19,12 +19,9 @@ client.connect(ADDR)
 
 def send(operation, msg):
   serialized_message = serialize({"operation": operation, "info": msg})
-  #print(serialized_message)
   message_length = len(serialized_message)
   send_length = str(message_length).encode(FORMAT)
-  #print(send_length)
   send_length += b" " * (HEADER - len(send_length))
-  #print(send_length)
   client.send(send_length)
   client.send(serialized_message)
 
@@ -43,7 +40,6 @@ def login(username):
 def create_account(username):
     received_info = send(Operations.CREATE_ACCOUNT, username)
     status = deserialize(received_info)["operation"]
-    print(status)
     if status == "00":
       CURRENT_USER[0] = username
       return 0
@@ -51,10 +47,7 @@ def create_account(username):
     return 1
 
 def delete_account(username):
-    data = {"operation": Operations.DELETE_ACCOUNT, "info": username}
-    new_data = serialize(data)
-    # received_info = send(new_data)
-    received_info = b'100Operation Successful'
+    received_info = send(Operations.DELETE_ACCOUNT, username)
     status = deserialize(received_info)["operation"]
     if status == "00":
         CURRENT_USER[0] = ""
@@ -91,7 +84,7 @@ def view_msgs(username):
     return 1
 
 def load_user_menu():
-  actions = ["Send messages", "View my messages", "Logout"]
+  actions = ["Send messages", "View my messages", "Logout", "Delete account"]
   message = "\nMy Account\n\n"
   user_choice = curses.wrapper(menu, actions, message)
 
@@ -111,15 +104,19 @@ def load_user_menu():
 
   elif user_choice == "View my messages": # TODO
     pass
-  else:
+  elif user_choice == "Logout":
     CURRENT_USER[0] = ""
     start()
-    return
+  elif user_choice == "Delete account":
+    status = 1
+    while status == 1:
+      status = delete_account(CURRENT_USER[0])
+    load_user_menu()
 
 def start():
   
   # start menu, lets user pick their first action
-  actions = ["Login", "Create account", "List accounts", "Delete account"]
+  actions = ["Login", "Create account", "List accounts"]
   message = "\nWelcome to Messenger! What would you like to do?\n\n"
   name = curses.wrapper(menu, actions, message)
 
@@ -145,15 +142,4 @@ def start():
   elif name == "List accounts": # TODO
     print("TODO")
 
-  elif name == "Delete account":
-    print("\nWelcome to messenger! Please input a username to delete an account.\n")
-    account_name = input("Username: ")
-    
-    send(Operations.DELETE_ACCOUNT, account_name)
-
 start()
-
-# send("Hello World!")
-x = serialize({"operation": Operations.CREATE_ACCOUNT, "info": "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."})
-# print(deserialize(x))
-print(delete_account("jothi"))

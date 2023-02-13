@@ -47,7 +47,9 @@ def handle_client(conn, addr):
         # else:
         #   conn.send("\nThe username you have entered already exists. Please try again with another username.\n".encode(FORMAT))
       elif operation == Operations.DELETE_ACCOUNT: # TODO
-        pass
+        data = delete_account(info)
+        serialize_data = serialize(data)
+        conn.send(serialize_data)
       elif operation == Operations.LIST_ACCOUNTS: # TODO
         pass
       
@@ -91,7 +93,7 @@ def create_account(username):
 
 def delete_account(username):
     if username in USERS:
-        USERS.pop(username)
+        del USERS[username]
         return {"operation": Operations.SUCCESS}
     return {"operation": Operations.ACCOUNT_DOES_NOT_EXIST, "info": ""}
 
@@ -116,9 +118,9 @@ def view_msgs(username):
 
 def delete_account(username):
   if username not in USERS:
-    return {"status": Operations.ACCOUNT_DOES_NOT_EXIST}
+    return {"operation": Operations.ACCOUNT_DOES_NOT_EXIST, "info": ""}
   del USERS[username]
-  return {"status": Operations.SUCCESS}
+  return {"operation": Operations.SUCCESS, "info": ""}
 
 print("[STARTING] Server is starting at IPv4 Address " + str(SERVER) + " ...")
 start()

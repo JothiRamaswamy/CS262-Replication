@@ -44,6 +44,4 @@ def menu(stdscr, classes, message):
 
 #option, name = curses.wrapper(menu, ["Login", "Create account", "List accounts", "Delete account"])
 
-#print(option, name)
-
 #input("Type message: ")
