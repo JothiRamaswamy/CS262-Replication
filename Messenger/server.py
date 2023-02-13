@@ -41,17 +41,21 @@ def handle_client(conn, addr):
           print(USERS)
         else:
           conn.send("\nThe username you have entered already exists. Please try again with another username.\n".encode(FORMAT))
-      elif operation == Operations.DELETE_ACCOUNT: # TODO
+      
+      elif operation == Operations.DELETE_ACCOUNT: # client wants to delete account
         status = delete_account(info)["status"]
         if status == Operations.SUCCESS:
           conn.send("     ... account deleted successfully\n".encode(FORMAT))
           print(USERS)
         else:
           conn.send("\nThe username entered does not exist on the server. Please try again.\n".encode(FORMAT))
+      
       elif operation == Operations.LIST_ACCOUNTS: # TODO
         pass
+      
       elif operation == Operations.LOGIN: # TODO
         pass
+      
       elif operation == Operations.SEND_MESSAGE:
         if info == DISCONNECT_MESSAGE:
           connected = False
