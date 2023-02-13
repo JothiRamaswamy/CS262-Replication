@@ -29,7 +29,6 @@ def send(operation, msg):
 
 def login(username):
     received_info = send(Operations.LOGIN, username)
-    print(received_info)
     status = deserialize(received_info)["operation"]
     if status == "00":
       CURRENT_USER[0] = username
@@ -69,17 +68,25 @@ def list_accounts():
 def send_message(sender, receiver, msg):
     total_info = sender + "\n" + receiver + "\n" + msg
     received_info = send(Operations.SEND_MESSAGE, total_info)
-    status = deserialize(received_info)["operation"]
-    if status == "00":
-        return 0
-    print("Message send failure, receiving account does not exist")
-    return 1
+    print(deserialize(received_info))
+    try:
+      status = deserialize(received_info)["operation"]
+      if status == "00":
+          return 0
+      print("Message send failure, receiving account does not exist")
+      return 1
+    except:
+      print(deserialize(received_info))
+      print("something didn't work...")
+      return 1
 
 def view_msgs(username):
     received_info = send(Operations.VIEW_UNDELIVERED_MESSAGES, username)
-    status = deserialize(received_info)["operation"]
-    if status == "04":
-        return deserialize(received_info)["info"]
+    data = deserialize(received_info)
+    if data["operation"] == "04":
+      print(data)
+      print(data["info"])
+      return 0
     print("Cannot retrieve messages")
     return 1
 
@@ -94,16 +101,20 @@ def load_user_menu():
     while status == 1:
       receiver = input("Who would you like to send a message to? ")
       message = input("Message: ")
+      final_message = "<" + CURRENT_USER[0] + "> " + message 
       if message == "STOP":
         print(f"\n[ENDING CHAT] Ending chat with {SERVER}\n")
         send(Operations.SEND_MESSAGE, DISCONNECT_MESSAGE)
         break
-      status = send_message(CURRENT_USER[0], receiver, message)
+      status = send_message(CURRENT_USER[0], receiver, final_message)
     load_user_menu()
     return
 
   elif user_choice == "View my messages": # TODO
-    pass
+    status = view_msgs(CURRENT_USER[0])
+    response = input("Back to menu? (Y/n) ")
+    if response == "Y":
+      load_user_menu()
   elif user_choice == "Logout":
     CURRENT_USER[0] = ""
     start()

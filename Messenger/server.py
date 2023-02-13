@@ -14,6 +14,7 @@ HEADER = 64
 ADDR = (SERVER, PORT)
 FORMAT = "utf-8"
 DISCONNECT_MESSAGE = "!DISCONNECT"
+SEPARATE_CHARACTER = "\n"
 
 USERS = {"jothi": user("jothi")} # dictionary holding all user objects { key: username, value: user object}
 
@@ -65,7 +66,11 @@ def handle_client(conn, addr):
         serialize_data = serialize(data)
         conn.send(serialize_data)
         print(f"[{addr}] {version, operation, info}")
-        conn.send("     ... message received by server".encode(FORMAT))
+        # conn.send("     ... message received by server".encode(FORMAT))
+      elif operation == Operations.VIEW_UNDELIVERED_MESSAGES:
+        data = view_msgs(info)
+        serialize_data = serialize(data)
+        conn.send(serialize_data)
   
   conn.close()
 
@@ -102,7 +107,6 @@ def list_accounts():
     return {"operation": Operations.LIST_OF_ACCOUNTS, "info": user_list}
 
 def send_message(sender, receiver, msg):
-  print(receiver, sender)
   if receiver in USERS and sender in USERS:
       USERS[receiver].undelivered_messages.append(msg)
       return {"operation": Operations.SUCCESS, "info": ""}
@@ -110,9 +114,10 @@ def send_message(sender, receiver, msg):
 
 def view_msgs(username):
     if username in USERS:
-        messages = pickle.dumps(USERS[username].undelivered_messages)
+        messages = SEPARATE_CHARACTER.join(USERS[username].undelivered_messages)
         USERS[username].undelivered_messages.clear()
         return {"operation": Operations.LIST_OF_MESSAGES, "info": messages}
+    print("Failure to retrieve messages")
     return {"operation": Operations.ACCOUNT_DOES_NOT_EXIST, "info": ""}
 
 
