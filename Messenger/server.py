@@ -16,7 +16,7 @@ FORMAT = "utf-8"
 DISCONNECT_MESSAGE = "!DISCONNECT"
 SEPARATE_CHARACTER = "\n"
 
-USERS = {"jothi": user("jothi")} # dictionary holding all user objects { key: username, value: user object}
+USERS = {} # dictionary holding all user objects { key: username, value: user object}
 
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM) # create socket
 server.bind(ADDR)
@@ -37,8 +37,8 @@ def handle_client(conn, addr):
 
       if operation == Operations.CREATE_ACCOUNT: # client wants to create account
         data = create_account(info)
-        serialize_data = serialize(data)
-        conn.send(serialize_data)
+        serialized_data = serialize(data)
+        conn.send(serialized_data)
         # if status == Operations.SUCCESS:
         #   conn.send("     ... account created successfully\n".encode(FORMAT))
         #   print(USERS)
@@ -47,30 +47,42 @@ def handle_client(conn, addr):
 
         # else:
         #   conn.send("\nThe username you have entered already exists. Please try again with another username.\n".encode(FORMAT))
-      elif operation == Operations.DELETE_ACCOUNT: # TODO
+      elif operation == Operations.DELETE_ACCOUNT:
         data = delete_account(info)
-        serialize_data = serialize(data)
-        conn.send(serialize_data)
-      elif operation == Operations.LIST_ACCOUNTS: # TODO
-        pass
-      
-      elif operation == Operations.LOGIN: # TODO
+        serialized_data = serialize(data)
+        conn.send(serialized_data)
+
+      elif operation == Operations.LIST_ACCOUNTS:
+        if not USERS:
+          data = {"operation": Operations.FAILURE, "info":""}
+          serialized_data = serialize(data)
+          conn.send(serialized_data)
+        else:
+          accounts = USERS.keys()
+          accounts_string = "\n".join(accounts)
+          data = {"operation": Operations.SUCCESS, "info": accounts_string}
+          serialized_data = serialize(data)
+          conn.send(serialized_data)
+
+      elif operation == Operations.LOGIN:
         data = login(info)
-        serialize_data = serialize(data)
-        conn.send(serialize_data)
+        serialized_data = serialize(data)
+        conn.send(serialized_data)
+
       elif operation == Operations.SEND_MESSAGE:
         if info == DISCONNECT_MESSAGE:
           connected = False
         info = info.split("\n")
         data = send_message(info[0], info[1], info[2])
-        serialize_data = serialize(data)
-        conn.send(serialize_data)
+        serialized_data = serialize(data)
+        conn.send(serialized_data)
         print(f"[{addr}] {version, operation, info}")
         # conn.send("     ... message received by server".encode(FORMAT))
+
       elif operation == Operations.VIEW_UNDELIVERED_MESSAGES:
         data = view_msgs(info)
-        serialize_data = serialize(data)
-        conn.send(serialize_data)
+        serialized_data = serialize(data)
+        conn.send(serialized_data)
   
   conn.close()
 
