@@ -1,6 +1,5 @@
 import socket
 import curses
-from time import sleep
 
 from menu import menu
 from operations import Operations
@@ -29,99 +28,116 @@ def send(operation, msg):
   return client.recv(2048) # print message received
 
 def login():
-    encoded_data = send(Operations.LIST_ACCOUNTS, "")
-    decoded_data = deserialize(encoded_data) # get accounts back
-    if decoded_data["operation"] == Operations.SUCCESS:
-      accounts = decoded_data["info"].split("\n")
-      message = "\nChoose an account:\n\n"
-      account = curses.wrapper(menu, accounts, message)
-      CURRENT_USER[0] = account
-      return 0
-    else:
-      print("\nThere are currently no accounts on the server.\n")
-      input("Press enter to return to the main menu.\n\n")
-      return 1
+  encoded_data = send(Operations.LIST_ACCOUNTS, "")
+  decoded_data = deserialize(encoded_data) # get accounts back
+  if decoded_data["operation"] == Operations.SUCCESS:
+    accounts = decoded_data["info"].split("\n")
+    message = "\nChoose an account:\n\n"
+    account = curses.wrapper(menu, accounts, message)
+    CURRENT_USER[0] = account
+    return 0
+  else:
+    print("\nThere are currently no accounts on the server.\n")
+    input("Press enter to return to the main menu.\n\n")
+    return 1
 
 def create_account(username):
-    received_info = send(Operations.CREATE_ACCOUNT, username)
-    status = deserialize(received_info)["operation"]
-    if status == "00":
-      CURRENT_USER[0] = username
-      return 0
-    print("\nThe username you entered already exists on the server. Please try again or type STOP to exit.\n")
-    return 1
+  received_info = send(Operations.CREATE_ACCOUNT, username)
+  status = deserialize(received_info)["operation"]
+  if status == "00":
+    CURRENT_USER[0] = username
+    return 0
+  print("\nThe username you entered already exists on the server. Please try again or input EXIT to exit.\n")
+  return 1
 
 def delete_account(username):
-    received_info = send(Operations.DELETE_ACCOUNT, username)
-    deserialize(received_info)["operation"]
-    CURRENT_USER[0] = ""
+  received_info = send(Operations.DELETE_ACCOUNT, username)
+  deserialize(received_info)["operation"]
+  CURRENT_USER[0] = ""
 
 def list_accounts():
-    data = {"operation": Operations.LIST_ACCOUNT, "info": ""}
-    new_data = serialize(data)
-    received_info = send(new_data)
-    status = deserialize(received_info)["operation"]
-    if status == "03":
-        return deserialize(received_info)["info"]
-    print("Account information does not exist")
-    return 1
+  data = {"operation": Operations.LIST_ACCOUNT, "info": ""}
+  new_data = serialize(data)
+  received_info = send(new_data)
+  status = deserialize(received_info)["operation"]
+  if status == "03":
+    return deserialize(received_info)["info"]
+  print("Account information does not exist")
+  return 1
 
 def send_message(sender, receiver, msg):
-    total_info = sender + "\n" + receiver + "\n" + msg
-    received_info = send(Operations.SEND_MESSAGE, total_info)
-    print(deserialize(received_info))
-    try:
-      status = deserialize(received_info)["operation"]
-      if status == "00":
-          return 0
-      print("Message send failure, receiving account does not exist")
-      return 1
-    except:
-      print(deserialize(received_info))
-      print("something didn't work...")
-      return 1
-
-def view_msgs(username):
-    received_info = send(Operations.VIEW_UNDELIVERED_MESSAGES, username)
-    data = deserialize(received_info)
-    if data["operation"] == "04":
-      print(data)
-      print(data["info"])
+  total_info = sender + "\n" + receiver + "\n" + msg
+  received_info = send(Operations.SEND_MESSAGE, total_info)
+  try:
+    status = deserialize(received_info)["operation"]
+    if status == "00":
       return 0
-    print("Cannot retrieve messages")
+    print("Message send failure, receiving account does not exist")
+    return 1
+  except:
+    print(deserialize(received_info))
+    print("something didn't work...")
     return 1
 
+def view_msgs(username):
+
+  received_info = send(Operations.VIEW_UNDELIVERED_MESSAGES, username)
+  data = deserialize(received_info)
+
+  if data["operation"] == Operations.FAILURE:
+    print("\n" + CURRENT_USER[0] + "'s account does not have any unread messages.")
+  else:
+    messages = data["info"].split("\n")
+    print("\nList of " + CURRENT_USER[0] + "'s messages:\n")
+    for j, message in enumerate(messages):
+      print(str(j + 1) + ". " + str(message))
+  input("\nPress enter to return to the main menu.\n\n")
+
 def load_user_menu():
+
+  # user menu, lets users pick from a set of actions
+
   actions = ["Send messages", "View my messages", "Logout", "Delete account"]
   message = "\n" + CURRENT_USER[0] + "'s Account\n\n"
   user_choice = curses.wrapper(menu, actions, message)
 
   if user_choice == "Send messages":
-    print("\nInput a message and press enter to share, or type STOP to end the chat.\n")
-    status = 1
-    while status == 1:
-      receiver = input("Who would you like to send a message to? ")
+
+    encoded_data = send(Operations.LIST_ACCOUNTS, "")
+    decoded_data = deserialize(encoded_data) # get accounts back
+    accounts = decoded_data["info"].split("\n")
+    message = "\nWho would you like to send messages to?\n\n"
+
+    receiver = curses.wrapper(menu, accounts, message)
+
+    print("\nInput a message and press enter to share with " + receiver + " or EXIT to end the chat.\n")
+    while True:
       message = input("Message: ")
-      final_message = "<" + CURRENT_USER[0] + "> " + message 
-      if message == "STOP":
-        print(f"\n[ENDING CHAT] Ending chat with {SERVER}\n")
-        send(Operations.SEND_MESSAGE, DISCONNECT_MESSAGE)
+      processed_message = "<" + CURRENT_USER[0] + "> " + message 
+      if message == "EXIT":
+        print(f"\n[ENDING CHAT] Ending chat with {receiver}\n")
         break
-      status = send_message(CURRENT_USER[0], receiver, final_message)
+      send_message(CURRENT_USER[0], receiver, processed_message)
     load_user_menu()
     return
 
   elif user_choice == "View my messages":
-    status = view_msgs(CURRENT_USER[0])
-    response = input("Back to menu? (Y/n) ")
-    if response == "Y":
-      load_user_menu()
+    view_msgs(CURRENT_USER[0])
+    load_user_menu()
   elif user_choice == "Logout":
     CURRENT_USER[0] = ""
     return start()
   elif user_choice == "Delete account":
-    delete_account(CURRENT_USER[0])
-    return start()
+
+    actions = ["Go back", "Delete forever"]
+    message = "\nAre you sure you would like to delete this account? Any unread messages will be permanently lost.\n\n"
+    choice = curses.wrapper(menu, actions, message)
+
+    if choice == "Delete forever":
+      delete_account(CURRENT_USER[0])
+      return start()
+    else:
+      load_user_menu()
 
 def start():
   # start menu, lets user pick their first action
@@ -130,15 +146,16 @@ def start():
   name = curses.wrapper(menu, actions, message)
 
   if name == "Quit Messenger":
+    send(Operations.SEND_MESSAGE, DISCONNECT_MESSAGE)
     return
 
   elif name == "Create account":
-    print("\nWelcome to messenger! Please input a username to join.\n")
+    print("\nWelcome to messenger! Please input a username to join or EXIT to exit.\n")
     status = 1
     while status == 1:
       account_name = input("Username: ")
 
-      if account_name == "STOP":
+      if account_name == "EXIT":
         return start()
 
       if len(account_name) > 10:
@@ -160,8 +177,8 @@ def start():
     if decoded_data["operation"] == Operations.SUCCESS:
       accounts = decoded_data["info"].split("\n")
       print("\nList of accounts currently on the server:\n")
-      for account in accounts:
-        print(account)
+      for j, account in enumerate(accounts):
+        print(str(j + 1) + ". " + str(account))
       input("\nPress enter to return to the main menu.\n\n")
     else:
       print("\nThere are currently no accounts on the server.\n")

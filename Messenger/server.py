@@ -39,20 +39,13 @@ def handle_client(conn, addr):
         data = create_account(info)
         serialized_data = serialize(data)
         conn.send(serialized_data)
-        # if status == Operations.SUCCESS:
-        #   conn.send("     ... account created successfully\n".encode(FORMAT))
-        #   print(USERS)
 
-           # TODO: communicate with client what happened on server
-
-        # else:
-        #   conn.send("\nThe username you have entered already exists. Please try again with another username.\n".encode(FORMAT))
-      elif operation == Operations.DELETE_ACCOUNT:
+      elif operation == Operations.DELETE_ACCOUNT: # client wants to delete
         data = delete_account(info)
         serialized_data = serialize(data)
         conn.send(serialized_data)
 
-      elif operation == Operations.LIST_ACCOUNTS:
+      elif operation == Operations.LIST_ACCOUNTS: # client list all
         if not USERS:
           data = {"operation": Operations.FAILURE, "info":""}
           serialized_data = serialize(data)
@@ -64,22 +57,23 @@ def handle_client(conn, addr):
           serialized_data = serialize(data)
           conn.send(serialized_data)
 
-      elif operation == Operations.LOGIN:
+      elif operation == Operations.LOGIN: # client login
         data = login(info)
         serialized_data = serialize(data)
         conn.send(serialized_data)
 
-      elif operation == Operations.SEND_MESSAGE:
+      elif operation == Operations.SEND_MESSAGE: # client send message
         if info == DISCONNECT_MESSAGE:
           connected = False
-        info = info.split("\n")
-        data = send_message(info[0], info[1], info[2])
-        serialized_data = serialize(data)
-        conn.send(serialized_data)
-        print(f"[{addr}] {version, operation, info}")
-        # conn.send("     ... message received by server".encode(FORMAT))
+        else:
+          info = info.split("\n")
+          data = send_message(info[0], info[1], info[2])
+          serialized_data = serialize(data)
+          conn.send(serialized_data)
+          print(f"[{addr}] {version, operation, info}")
+          #conn.send("     ... message received by server".encode(FORMAT))
 
-      elif operation == Operations.VIEW_UNDELIVERED_MESSAGES:
+      elif operation == Operations.VIEW_UNDELIVERED_MESSAGES: # client view undelivered
         data = view_msgs(info)
         serialized_data = serialize(data)
         conn.send(serialized_data)
@@ -96,48 +90,33 @@ def start(): # handle and distribute new connections
     print(f"[ACTIVE CONNECTIONS] {threading.active_count() - 1}")
 
 def login(username):
-    if username in USERS:
-        print(USERS[username].undelivered_messages)
-        return {"operation": Operations.SUCCESS, "info": ""}
-    return {"operation": Operations.ACCOUNT_DOES_NOT_EXIST, "info": ""}
-
-def create_account(username):
-    if username in USERS:
-      return {"operation": Operations.ACCOUNT_ALREADY_EXISTS, "info": ""}
-    new_user = user(username)
-    USERS[username] = new_user
-    return {"operation": Operations.SUCCESS, "info":""}
-
-def delete_account(username):
-    if username in USERS:
-        del USERS[username]
-        return {"operation": Operations.SUCCESS}
-    return {"operation": Operations.ACCOUNT_DOES_NOT_EXIST, "info": ""}
-
-def list_accounts():
-    user_list = pickle.dumps(list(USERS.keys()))
-    return {"operation": Operations.LIST_OF_ACCOUNTS, "info": user_list}
-
-def send_message(sender, receiver, msg):
-  if receiver in USERS and sender in USERS:
-      USERS[receiver].undelivered_messages.append(msg)
-      return {"operation": Operations.SUCCESS, "info": ""}
+  if username in USERS:
+    print(USERS[username].undelivered_messages)
+    return {"operation": Operations.SUCCESS, "info": ""}
   return {"operation": Operations.ACCOUNT_DOES_NOT_EXIST, "info": ""}
 
-def view_msgs(username):
-    if username in USERS:
-        messages = SEPARATE_CHARACTER.join(USERS[username].undelivered_messages)
-        USERS[username].undelivered_messages.clear()
-        return {"operation": Operations.LIST_OF_MESSAGES, "info": messages}
-    print("Failure to retrieve messages")
-    return {"operation": Operations.ACCOUNT_DOES_NOT_EXIST, "info": ""}
-
+def create_account(username):
+  if username in USERS:
+    return {"operation": Operations.ACCOUNT_ALREADY_EXISTS, "info": ""}
+  new_user = user(username)
+  USERS[username] = new_user
+  return {"operation": Operations.SUCCESS, "info":""}
 
 def delete_account(username):
-  if username not in USERS:
-    return {"operation": Operations.ACCOUNT_DOES_NOT_EXIST, "info": ""}
   del USERS[username]
+  return {"operation": Operations.SUCCESS}
+
+def send_message(sender, receiver, msg):
+  USERS[receiver].undelivered_messages.append(msg)
   return {"operation": Operations.SUCCESS, "info": ""}
+
+def view_msgs(username):
+  if not USERS[username].undelivered_messages: # handle case of no undelivered messages
+    return {"operation": Operations.FAILURE, "info": ""}
+  
+  messages = SEPARATE_CHARACTER.join(USERS[username].undelivered_messages)
+  USERS[username].undelivered_messages = []
+  return {"operation": Operations.LIST_OF_MESSAGES, "info": messages}
 
 print("[STARTING] Server is starting at IPv4 Address " + str(SERVER) + " ...")
 start()
