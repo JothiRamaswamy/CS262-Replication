@@ -51,8 +51,8 @@ def create_account(username):
   return 1
 
 def delete_account(username):
-  received_info = send(Operations.DELETE_ACCOUNT, username)
-  deserialize(received_info)["operation"]
+  send(Operations.DELETE_ACCOUNT, username)
+  #deserialize(received_info)["operation"]
   CURRENT_USER[0] = ""
 
 def list_accounts():

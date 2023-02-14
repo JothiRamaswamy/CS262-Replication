@@ -104,7 +104,7 @@ def create_account(username):
 
 def delete_account(username):
   del USERS[username]
-  return {"operation": Operations.SUCCESS}
+  return {"operation": Operations.SUCCESS, "info": ""}
 
 def send_message(sender, receiver, msg):
   USERS[receiver].undelivered_messages.append(msg)
