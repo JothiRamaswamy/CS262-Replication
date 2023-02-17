@@ -1,7 +1,10 @@
 # used this tutorial to initially create sockets: https://www.youtube.com/watch?v=3QiPPX-KeSc
 
+from signal import signal
 import socket
 import threading
+
+from importlib_metadata import sys
 
 from operations import Operations
 from classes import user
@@ -17,6 +20,7 @@ DISCONNECT_MESSAGE = "!DISCONNECT"
 SEPARATE_CHARACTER = "\n"
 
 USERS = {} # dictionary holding all user objects { key: username, value: user object}
+ACTIVE_USERS = {} # holds currently logged in users { key: username, value: conn}
 
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM) # create socket
 server.bind(ADDR)
@@ -36,9 +40,10 @@ def handle_client(conn, addr):
       info = decoded_data["info"]
 
       if operation == Operations.CREATE_ACCOUNT: # client wants to create account
-        data = create_account(info)
+        data = create_account(info, conn)
         serialized_data = serialize(data)
         conn.send(serialized_data)
+        print(ACTIVE_USERS)
 
       elif operation == Operations.DELETE_ACCOUNT: # client wants to delete
         data = delete_account(info)
@@ -58,16 +63,26 @@ def handle_client(conn, addr):
           conn.send(serialized_data)
 
       elif operation == Operations.LOGIN: # client login
-        data = login(info)
+        data = login(info, conn)
         serialized_data = serialize(data)
         conn.send(serialized_data)
+        print(ACTIVE_USERS)
+
+      elif operation == Operations.LOGOUT: # client login
+        data = logout(info)
+        serialized_data = serialize(data)
+        conn.send(serialized_data)
+        print(ACTIVE_USERS)
 
       elif operation == Operations.SEND_MESSAGE: # client send message
         if info == DISCONNECT_MESSAGE:
           connected = False
         else:
-          info = info.split("\n")
-          data = send_message(info[0], info[1], info[2])
+          sender, receiver, msg = info.split("\n")
+          data = send_message(sender, receiver, msg)
+          if receiver in ACTIVE_USERS:
+            serialized_msg = serialize(msg)
+            ACTIVE_USERS[receiver].send(serialized_msg)
           serialized_data = serialize(data)
           conn.send(serialized_data)
           print(f"[{addr}] {version, operation, info}")
@@ -78,6 +93,10 @@ def handle_client(conn, addr):
         serialized_data = serialize(data)
         conn.send(serialized_data)
   
+  for key, value in ACTIVE_USERS.items():
+    if value == conn:
+      del ACTIVE_USERS[key]
+      break
   conn.close()
 
 def start(): # handle and distribute new connections
@@ -89,26 +108,41 @@ def start(): # handle and distribute new connections
     thread.start()
     print(f"[ACTIVE CONNECTIONS] {threading.active_count() - 1}")
 
-def login(username):
+def login(username, conn):
   if username in USERS:
     print(USERS[username].undelivered_messages)
+    ACTIVE_USERS[username] = conn
     return {"operation": Operations.SUCCESS, "info": ""}
   return {"operation": Operations.ACCOUNT_DOES_NOT_EXIST, "info": ""}
 
-def create_account(username):
+def logout(username):
+  if username in ACTIVE_USERS:
+    del ACTIVE_USERS[username]
+    return {"operation": Operations.SUCCESS, "info": ""}
+  return {"operation": Operations.ACCOUNT_DOES_NOT_EXIST, "info": ""}
+
+def create_account(username, conn):
   if username in USERS:
     return {"operation": Operations.ACCOUNT_ALREADY_EXISTS, "info": ""}
   new_user = user(username)
   USERS[username] = new_user
+  ACTIVE_USERS[username] = conn
   return {"operation": Operations.SUCCESS, "info":""}
 
 def delete_account(username):
   del USERS[username]
+  del ACTIVE_USERS[username]
   return {"operation": Operations.SUCCESS, "info": ""}
 
 def send_message(sender, receiver, msg):
-  USERS[receiver].undelivered_messages.append(msg)
-  return {"operation": Operations.SUCCESS, "info": ""}
+  if receiver in USERS:
+    if receiver not in ACTIVE_USERS:
+      USERS[receiver].undelivered_messages.append(msg)
+    return {"operation": Operations.SUCCESS, "info": ""}
+  return {"operation": Operations.FAILURE, "info": ""}
+
+def deliver_message_now(msg):
+  return {"operation": Operations.RECEIVE_CURRENT_MESSAGE, "info": msg}
 
 def view_msgs(username):
   if not USERS[username].undelivered_messages: # handle case of no undelivered messages
