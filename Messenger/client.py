@@ -25,7 +25,13 @@ def send(operation, msg):
   client.send(send_length)
   client.send(serialized_message)
 
-  return client.recv(2048) # print message received
+  message_length = client.recv(64).decode(FORMAT)
+  if message_length:
+    message_length = int(message_length)
+  else:
+    message_length = 1
+
+  return client.recv(message_length)
 
 def login():
   encoded_data = send(Operations.LIST_ACCOUNTS, "")

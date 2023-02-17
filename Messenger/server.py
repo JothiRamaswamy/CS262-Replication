@@ -38,28 +38,47 @@ def handle_client(conn, addr):
       if operation == Operations.CREATE_ACCOUNT: # client wants to create account
         data = create_account(info)
         serialized_data = serialize(data)
+
+        send_length = calculate_send_length(serialized_data)
+  
+        conn.send(send_length)
         conn.send(serialized_data)
 
       elif operation == Operations.DELETE_ACCOUNT: # client wants to delete
         data = delete_account(info)
         serialized_data = serialize(data)
+
+        send_length = calculate_send_length(serialized_data)
+  
+        conn.send(send_length)
         conn.send(serialized_data)
 
       elif operation == Operations.LIST_ACCOUNTS: # client list all
         if not USERS:
           data = {"operation": Operations.FAILURE, "info":""}
           serialized_data = serialize(data)
+          send_length = calculate_send_length(serialized_data)
+  
+          conn.send(send_length)
           conn.send(serialized_data)
         else:
           accounts = USERS.keys()
           accounts_string = "\n".join(accounts)
           data = {"operation": Operations.SUCCESS, "info": accounts_string}
           serialized_data = serialize(data)
+          
+          send_length = calculate_send_length(serialized_data)
+  
+          conn.send(send_length)
           conn.send(serialized_data)
 
       elif operation == Operations.LOGIN: # client login
         data = login(info)
         serialized_data = serialize(data)
+        
+        send_length = calculate_send_length(serialized_data)
+  
+        conn.send(send_length)
         conn.send(serialized_data)
 
       elif operation == Operations.SEND_MESSAGE: # client send message
@@ -69,6 +88,9 @@ def handle_client(conn, addr):
           info = info.split("\n")
           data = send_message(info[0], info[1], info[2])
           serialized_data = serialize(data)
+          send_length = calculate_send_length(serialized_data)
+  
+          conn.send(send_length)
           conn.send(serialized_data)
           print(f"[{addr}] {version, operation, info}")
           #conn.send("     ... message received by server".encode(FORMAT))
@@ -76,6 +98,9 @@ def handle_client(conn, addr):
       elif operation == Operations.VIEW_UNDELIVERED_MESSAGES: # client view undelivered
         data = view_msgs(info)
         serialized_data = serialize(data)
+        send_length = calculate_send_length(serialized_data)
+  
+        conn.send(send_length)
         conn.send(serialized_data)
   
   conn.close()
@@ -88,6 +113,13 @@ def start(): # handle and distribute new connections
     thread = threading.Thread(target = handle_client, args = (conn, addr))
     thread.start()
     print(f"[ACTIVE CONNECTIONS] {threading.active_count() - 1}")
+
+def calculate_send_length(serialized_data):
+  message_length = len(serialized_data)
+  send_length = str(message_length).encode(FORMAT)
+  send_length += b" " * (HEADER - len(send_length))
+
+  return send_length
 
 def login(username):
   if username in USERS:
