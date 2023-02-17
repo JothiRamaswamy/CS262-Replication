@@ -69,7 +69,12 @@ def send(operation, msg):
   client.send(serialized_message)
   returned_operation = Operations.RECEIVE_CURRENT_MESSAGE
   while returned_operation == Operations.RECEIVE_CURRENT_MESSAGE:
-    returned_data = deserialize(client.recv(2048))
+    message_length = client.recv(64).decode(FORMAT)
+    if message_length:
+      message_length = int(message_length)
+    else:
+      message_length = 1
+    returned_data = deserialize(client.recv(message_length))
     returned_operation = returned_data["operation"]
     if returned_operation == Operations.RECEIVE_CURRENT_MESSAGE:
       print("\r[INCOMING MESSAGE]{}".format(returned_data["info"])) # redirect to background function
