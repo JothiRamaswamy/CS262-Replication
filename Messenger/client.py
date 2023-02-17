@@ -1,5 +1,6 @@
 import socket
 import curses
+import fnmatch
 
 from menu import menu
 from operations import Operations
@@ -176,9 +177,12 @@ def start():
     decoded_data = deserialize(encoded_data) # get accounts back
     if decoded_data["operation"] == Operations.SUCCESS:
       accounts = decoded_data["info"].split("\n")
-      print("\nList of accounts currently on the server:\n")
-      for j, account in enumerate(accounts):
-        print(str(j + 1) + ". " + str(account))
+      print("\nPlease input a text wildcard. * matches everything, ? matches any single character, [seq] matches any character in seq, and [!seq] matches any character not in seq.\n")
+      wildcard = input("Text wildcard: ")
+      print("\nList of accounts currently on the server matching " + wildcard + ":\n")
+      for account in accounts:
+        if fnmatch.fnmatch(account, wildcard):
+          print(str(account))
       input("\nPress enter to return to the main menu.\n\n")
     else:
       print("\nThere are currently no accounts on the server.\n")
