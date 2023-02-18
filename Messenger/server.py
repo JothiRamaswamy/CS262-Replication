@@ -1,13 +1,10 @@
 # used this tutorial to initially create sockets: https://www.youtube.com/watch?v=3QiPPX-KeSc
 
-from signal import signal
 import socket
 import threading
 
-from importlib_metadata import sys
-
 from operations import Operations
-from classes import user
+from user import User
 from protocols import deserialize, serialize
 
 PORT = 5050
@@ -19,6 +16,7 @@ FORMAT = "utf-8"
 DISCONNECT_MESSAGE = "!DISCONNECT"
 SEPARATE_CHARACTER = "\n"
 
+USER_LOCK = threading.Lock()
 USERS = {} # dictionary holding all user objects { key: username, value: user object}
 ACTIVE_USERS = {} # holds currently logged in users { key: username, value: conn}
 
@@ -41,59 +39,29 @@ def handle_client(conn, addr):
 
       if operation == Operations.CREATE_ACCOUNT: # client wants to create account
         data = create_account(info, conn)
-        serialized_data = serialize(data)
-
-        send_length = calculate_send_length(serialized_data)
-  
-        conn.send(send_length)
-        conn.send(serialized_data)
+        package_send(data, conn)
 
       elif operation == Operations.DELETE_ACCOUNT: # client wants to delete
         data = delete_account(info)
-        serialized_data = serialize(data)
-
-        send_length = calculate_send_length(serialized_data)
-  
-        conn.send(send_length)
-        conn.send(serialized_data)
+        package_send(data, conn)
 
       elif operation == Operations.LIST_ACCOUNTS: # client list all
         if not USERS:
-          data = {"operation": Operations.FAILURE, "info":""}
-          serialized_data = serialize(data)
-          send_length = calculate_send_length(serialized_data)
-  
-          conn.send(send_length)
-          print("sent length {}".format(send_length))
-          conn.send(serialized_data)
+          data = payload(Operations.FAILURE, "")
+          package_send(data, conn)
         else:
           accounts = USERS.keys()
           accounts_string = "\n".join(accounts)
-          data = {"operation": Operations.SUCCESS, "info": accounts_string}
-          serialized_data = serialize(data)
-          
-          send_length = calculate_send_length(serialized_data)
-  
-          conn.send(send_length)
-          print("sent length {}".format(send_length))
-          conn.send(serialized_data)
+          data = payload(Operations.SUCCESS, accounts_string)
+          package_send(data, conn)
 
       elif operation == Operations.LOGIN: # client login
         data = login(info, conn)
-        serialized_data = serialize(data)
-        
-        send_length = calculate_send_length(serialized_data)
-  
-        conn.send(send_length)
-        conn.send(serialized_data)
+        package_send(data, conn)
 
       elif operation == Operations.LOGOUT:
         data = logout(info)
-        serialized_data = serialize(data)
-        send_length = calculate_send_length(serialized_data)
-  
-        conn.send(send_length)
-        conn.send(serialized_data)
+        package_send(data, conn)
 
       elif operation == Operations.SEND_MESSAGE: # client send message
         if info == DISCONNECT_MESSAGE:
@@ -102,31 +70,25 @@ def handle_client(conn, addr):
           sender, receiver, msg = info.split("\n")
           data = send_message(sender, receiver, msg)
           if receiver in ACTIVE_USERS:
-            serialized_msg = serialize(deliver_msgs_immediately(msg))
-            send_length = calculate_send_length(serialized_msg)
-            ACTIVE_USERS[receiver].send(send_length)
-            ACTIVE_USERS[receiver].send(serialized_msg)
-          serialized_data = serialize(data)
-          send_length = calculate_send_length(serialized_data)
-  
-          conn.send(send_length)
-          conn.send(serialized_data)
-          print(f"[{addr}] {version, operation, info}")
-          #conn.send("     ... message received by server".encode(FORMAT))
+            msg_data = deliver_msgs_immediately(msg)
+            package_send(msg_data, ACTIVE_USERS[receiver])
+          package_send(data, conn)
 
       elif operation == Operations.VIEW_UNDELIVERED_MESSAGES: # client view undelivered
         data = view_msgs(info)
-        serialized_data = serialize(data)
-        send_length = calculate_send_length(serialized_data)
-  
-        conn.send(send_length)
-        conn.send(serialized_data)
+        package_send(data, conn)
   
   for key, value in ACTIVE_USERS.items():
     if value == conn:
       del ACTIVE_USERS[key]
       break
   conn.close()
+
+def package_send(data, conn):
+  serialized_data = serialize(data)
+  send_length = calculate_send_length(serialized_data)
+  conn.send(send_length)
+  conn.send(serialized_data)
 
 def start(): # handle and distribute new connections
   server.listen()
@@ -146,45 +108,46 @@ def calculate_send_length(serialized_data):
 
 def login(username, conn):
   if username in USERS:
-    print(USERS[username].undelivered_messages)
     ACTIVE_USERS[username] = conn
-    return {"operation": Operations.SUCCESS, "info": ""}
-  return {"operation": Operations.ACCOUNT_DOES_NOT_EXIST, "info": ""}
+    return payload(Operations.SUCCESS, "")
+  return payload(Operations.ACCOUNT_DOES_NOT_EXIST, "")
 
 def logout(username):
   del ACTIVE_USERS[username]
-  return {"operation": Operations.SUCCESS, "info": ""}
+  return payload(Operations.SUCCESS, "")
 
 def create_account(username, conn):
   if username in USERS:
-    return {"operation": Operations.ACCOUNT_ALREADY_EXISTS, "info": ""}
-  new_user = user(username)
+    return payload(Operations.ACCOUNT_ALREADY_EXISTS, "")
+  new_user = User(username)
   USERS[username] = new_user
   ACTIVE_USERS[username] = conn
-  return {"operation": Operations.SUCCESS, "info":""}
+  return payload(Operations.SUCCESS, "")
 
 def delete_account(username):
   del USERS[username]
   del ACTIVE_USERS[username]
-  return {"operation": Operations.SUCCESS, "info": ""}
+  return payload(Operations.SUCCESS, "")
 
 def send_message(sender, receiver, msg):
   if receiver in USERS:
     if receiver not in ACTIVE_USERS:
-      USERS[receiver].undelivered_messages.append(msg)
-    return {"operation": Operations.SUCCESS, "info": ""}
-  return {"operation": Operations.FAILURE, "info": ""}
+      USERS[receiver].queue_message(msg)
+    return payload(Operations.SUCCESS, "")
+  return payload(Operations.FAILURE, "")
 
 def deliver_msgs_immediately(msg):
-  return {"operation": Operations.RECEIVE_CURRENT_MESSAGE, "info": msg}
+  return payload(Operations.RECEIVE_CURRENT_MESSAGE, msg)
 
 def view_msgs(username):
   if not USERS[username].undelivered_messages: # handle case of no undelivered messages
-    return {"operation": Operations.FAILURE, "info": ""}
+    return payload(Operations.FAILURE, "")
   
-  messages = SEPARATE_CHARACTER.join(USERS[username].undelivered_messages)
-  USERS[username].undelivered_messages = []
-  return {"operation": Operations.LIST_OF_MESSAGES, "info": messages}
+  messages = SEPARATE_CHARACTER.join(USERS[username].get_current_messages())
+  return payload(Operations.LIST_OF_MESSAGES, messages)
+
+def payload(operation, info):
+  return {"operation": operation, "info": info}
 
 print("[STARTING] Server is starting at IPv4 Address " + str(SERVER) + " ...")
 start()

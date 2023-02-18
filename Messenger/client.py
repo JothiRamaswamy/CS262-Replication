@@ -2,11 +2,9 @@ import logging
 import signal
 import socket
 import curses
-from threading import Thread
 import threading
 import time
 
-from importlib_metadata import sys
 import fnmatch
 
 from menu import menu
@@ -20,8 +18,9 @@ DISCONNECT_MESSAGE = "!DISCONNECT"
 SERVER_NAME = socket.gethostname() # gets name representing computer on the network
 SERVER = socket.gethostbyname(SERVER_NAME) # gets host IPv4 address
 ADDR = (SERVER, PORT)
-SESSION_INFO = {"username": "", "background_listen": True, "print": True}
-# QUEUED_MESSAGES = queue.Queue()
+SESSION_INFO = {"username": "", "background_listen": True}
+CLIENT_LOCK = threading.Lock()
+RECEIVE_EVENT = threading.Event()
 
 client = socket.socket(socket.AF_INET, socket.SOCK_STREAM) # create socket
 client.connect(ADDR)
@@ -31,6 +30,7 @@ def receive_incoming_messages():
     msg_length = client.recv(HEADER, socket.MSG_DONTWAIT)
     if not len(msg_length):
       print("[DISCONNECTED] You have been disconnected from the server.")
+      RECEIVE_EVENT.clear()
       client.close()
     if int(msg_length.decode(FORMAT)):
       length = int(msg_length.decode(FORMAT))
@@ -42,8 +42,8 @@ def receive_incoming_messages():
   except Exception as e:
     logging.exception(e)
 
-def poll_incoming_messages():
-  while True:
+def poll_incoming_messages(event):
+  while event.is_set():
     try:
       if SESSION_INFO["background_listen"]:
         message = receive_incoming_messages()
@@ -55,13 +55,9 @@ def poll_incoming_messages():
       break
 
 def background_listener():
-  background_thread = threading.Thread(target=poll_incoming_messages)
-  print("Starting background thread...")
+  RECEIVE_EVENT.set()
+  background_thread = threading.Thread(target=poll_incoming_messages, args=(RECEIVE_EVENT,))
   background_thread.start()
-
-# def print_incoming_messages():
-#   while SESSION_INFO["print"] and not QUEUED_MESSAGES.empty:
-#     print(QUEUED_MESSAGES.get())
 
 def send(operation, msg):
   serialized_message = serialize({"operation": operation, "info": msg})
@@ -84,8 +80,7 @@ def send(operation, msg):
         deserialized_data = deserialize(returned_data)
         returned_operation = deserialized_data["operation"]
         if returned_operation == Operations.RECEIVE_CURRENT_MESSAGE:
-          # print("\r[INCOMING MESSAGE]{}".format(deserialized_data["info"]))
-          pass
+          print("\r[INCOMING MESSAGE]{}".format(deserialized_data["info"]))
         else:
           SESSION_INFO["background_listen"] = True
           return deserialized_data
@@ -156,7 +151,6 @@ def send_message(sender, receiver, msg):
     status = received_info["operation"]
     if status == "00":
       return 0
-    print(status)
     print("Message send failure, receiving account does not exist")
     return 1
   except:
@@ -193,8 +187,8 @@ def load_user_menu():
 
     print("\nInput a message and press enter to share with " + receiver + " or EXIT to end the chat.\n")
     while True:
-      message = input("Message: ")
-      processed_message = "<" + SESSION_INFO["username"] + "> " + message 
+      message = input("")
+      processed_message = "<" + SESSION_INFO["username"] + ">" + message 
       if message == "EXIT":
         print(f"\n[ENDING CHAT] Ending chat with {receiver}\n")
         break
@@ -229,6 +223,7 @@ def start():
 
   if name == "Quit Messenger":
     send(Operations.SEND_MESSAGE, DISCONNECT_MESSAGE)
+    RECEIVE_EVENT.clear()
     return
 
   elif name == "Create account":
@@ -272,8 +267,8 @@ def start():
 
 def signal_handler(sig, frame):
   send(Operations.SEND_MESSAGE, DISCONNECT_MESSAGE)
+  RECEIVE_EVENT.clear()
   client.close()
-  sys.exit(0)
 
 signal.signal(signal.SIGINT, signal_handler)
 
