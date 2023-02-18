@@ -1,7 +1,3 @@
-#from enum import Enum
-
-# stopped using enum because it meant client / server couldn't identify it was same value
-
 class Operations:
   # SERVER SIDE OPERATIONS (sent to client)
   SUCCESS = "00"
