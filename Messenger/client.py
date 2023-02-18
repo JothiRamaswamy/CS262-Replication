@@ -1,5 +1,10 @@
+import logging
+import signal
 import socket
 import curses
+import threading
+import time
+
 import fnmatch
 
 from menu import menu
@@ -13,36 +18,92 @@ DISCONNECT_MESSAGE = "!DISCONNECT"
 SERVER_NAME = socket.gethostname() # gets name representing computer on the network
 SERVER = socket.gethostbyname(SERVER_NAME) # gets host IPv4 address
 ADDR = (SERVER, PORT)
-CURRENT_USER = [""]
+SESSION_INFO = {"username": "", "background_listen": True}
+CLIENT_LOCK = threading.Lock()
+RECEIVE_EVENT = threading.Event()
 
 client = socket.socket(socket.AF_INET, socket.SOCK_STREAM) # create socket
 client.connect(ADDR)
+
+def receive_incoming_messages():
+  try:
+    msg_length = client.recv(HEADER, socket.MSG_DONTWAIT)
+    if not len(msg_length):
+      print("[DISCONNECTED] You have been disconnected from the server.")
+      RECEIVE_EVENT.clear()
+      client.close()
+    if int(msg_length.decode(FORMAT)):
+      length = int(msg_length.decode(FORMAT))
+      deserialized_data = deserialize(client.recv(length))
+      if deserialized_data["operation"] == Operations.RECEIVE_CURRENT_MESSAGE:
+        return deserialized_data
+  except BlockingIOError:
+    pass
+  except Exception as e:
+    logging.exception(e)
+
+def poll_incoming_messages(event):
+  while event.is_set():
+    try:
+      if SESSION_INFO["background_listen"]:
+        message = receive_incoming_messages()
+        if message:
+          print("\r[INCOMING MESSAGE]{}".format(message["info"]))
+      time.sleep(1)
+    except Exception as e:
+      logging.exception(e)
+      break
+
+def background_listener():
+  RECEIVE_EVENT.set()
+  background_thread = threading.Thread(target=poll_incoming_messages, args=(RECEIVE_EVENT,))
+  background_thread.start()
 
 def send(operation, msg):
   serialized_message = serialize({"operation": operation, "info": msg})
   message_length = len(serialized_message)
   send_length = str(message_length).encode(FORMAT)
   send_length += b" " * (HEADER - len(send_length))
+  SESSION_INFO["background_listen"] = False
   client.send(send_length)
   client.send(serialized_message)
-
-  message_length = client.recv(64).decode(FORMAT)
-  if message_length:
-    message_length = int(message_length)
-  else:
-    message_length = 1
-
-  return client.recv(message_length)
+  message_length = client.recv(HEADER).decode(FORMAT)
+  returned_operation = Operations.RECEIVE_CURRENT_MESSAGE
+  while returned_operation == Operations.RECEIVE_CURRENT_MESSAGE:
+    if message_length:
+      message_length = int(message_length)
+    else:
+      message_length = 1
+    try:
+      returned_data = client.recv(message_length)
+      if len(returned_data):
+        deserialized_data = deserialize(returned_data)
+        returned_operation = deserialized_data["operation"]
+        if returned_operation == Operations.RECEIVE_CURRENT_MESSAGE:
+          print("\r[INCOMING MESSAGE]{}".format(deserialized_data["info"]))
+        else:
+          SESSION_INFO["background_listen"] = True
+          return deserialized_data
+      else:
+        return
+    except Exception as e:
+      print(e)
+      return
 
 def login():
-  encoded_data = send(Operations.LIST_ACCOUNTS, "")
-  decoded_data = deserialize(encoded_data) # get accounts back
-  if decoded_data["operation"] == Operations.SUCCESS:
-    accounts = decoded_data["info"].split("\n")
+  received_list = send(Operations.LIST_ACCOUNTS, "")
+  if received_list["operation"] == Operations.SUCCESS:
+    accounts = received_list["info"].split("\n")
     message = "\nChoose an account:\n\n"
-    account = curses.wrapper(menu, accounts, message)
-    CURRENT_USER[0] = account
-    return 0
+    username = curses.wrapper(menu, accounts, message)
+    SESSION_INFO["username"] = username
+    received_login_info = send(Operations.LOGIN, username)
+    status = received_login_info["operation"]
+    if status == "00":
+      SESSION_INFO["username"] = username
+      return 0
+    print("\nThe username you entered already exists on the server. Please try again or input EXIT to exit.\n")
+    return 1
   else:
     print("\nThere are currently no accounts on the server.\n")
     input("Press enter to return to the main menu.\n\n")
@@ -50,25 +111,36 @@ def login():
 
 def create_account(username):
   received_info = send(Operations.CREATE_ACCOUNT, username)
-  status = deserialize(received_info)["operation"]
+  status = received_info["operation"]
   if status == "00":
-    CURRENT_USER[0] = username
+    SESSION_INFO["username"] = username
     return 0
   print("\nThe username you entered already exists on the server. Please try again or input EXIT to exit.\n")
   return 1
 
 def delete_account(username):
-  send(Operations.DELETE_ACCOUNT, username)
-  #deserialize(received_info)["operation"]
-  CURRENT_USER[0] = ""
+  received_info = send(Operations.DELETE_ACCOUNT, username)
+  status = received_info["operation"]
+  if status == "00":
+    SESSION_INFO["username"] = ""
+    return 0
+  print("Deletion failure")
+  return 1
+
+def logout(username):
+  received_info = send(Operations.LOGOUT, username)
+  status = received_info["operation"]
+  if status == "00":
+    SESSION_INFO["username"] = ""
+    return 0
+  print("Logout failure")
+  return 1
 
 def list_accounts():
-  data = {"operation": Operations.LIST_ACCOUNT, "info": ""}
-  new_data = serialize(data)
-  received_info = send(new_data)
-  status = deserialize(received_info)["operation"]
+  received_info = send(Operations.LIST_ACCOUNT, "")
+  status = received_info["operation"]
   if status == "03":
-    return deserialize(received_info)["info"]
+    return received_info["info"]
   print("Account information does not exist")
   return 1
 
@@ -76,26 +148,23 @@ def send_message(sender, receiver, msg):
   total_info = sender + "\n" + receiver + "\n" + msg
   received_info = send(Operations.SEND_MESSAGE, total_info)
   try:
-    status = deserialize(received_info)["operation"]
+    status = received_info["operation"]
     if status == "00":
       return 0
     print("Message send failure, receiving account does not exist")
     return 1
   except:
-    print(deserialize(received_info))
-    print("something didn't work...")
     return 1
 
 def view_msgs(username):
 
-  received_info = send(Operations.VIEW_UNDELIVERED_MESSAGES, username)
-  data = deserialize(received_info)
+  data = send(Operations.VIEW_UNDELIVERED_MESSAGES, username)
 
   if data["operation"] == Operations.FAILURE:
-    print("\n" + CURRENT_USER[0] + "'s account does not have any unread messages.")
+    print("\n" + SESSION_INFO["username"] + "'s account does not have any unread messages.")
   else:
     messages = data["info"].split("\n")
-    print("\nList of " + CURRENT_USER[0] + "'s messages:\n")
+    print("\nList of " + SESSION_INFO["username"] + "'s messages:\n")
     for j, message in enumerate(messages):
       print(str(j + 1) + ". " + str(message))
   input("\nPress enter to return to the main menu.\n\n")
@@ -105,13 +174,12 @@ def load_user_menu():
   # user menu, lets users pick from a set of actions
 
   actions = ["Send messages", "View my messages", "Logout", "Delete account"]
-  message = "\n" + CURRENT_USER[0] + "'s Account\n\n"
+  message = "\n" + SESSION_INFO["username"] + "'s Account\n\n"
   user_choice = curses.wrapper(menu, actions, message)
 
   if user_choice == "Send messages":
 
-    encoded_data = send(Operations.LIST_ACCOUNTS, "")
-    decoded_data = deserialize(encoded_data) # get accounts back
+    decoded_data = send(Operations.LIST_ACCOUNTS, "")
     accounts = decoded_data["info"].split("\n")
     message = "\nWho would you like to send messages to?\n\n"
 
@@ -119,21 +187,21 @@ def load_user_menu():
 
     print("\nInput a message and press enter to share with " + receiver + " or EXIT to end the chat.\n")
     while True:
-      message = input("Message: ")
-      processed_message = "<" + CURRENT_USER[0] + "> " + message 
+      message = input("")
+      processed_message = "<" + SESSION_INFO["username"] + ">" + message 
       if message == "EXIT":
         print(f"\n[ENDING CHAT] Ending chat with {receiver}\n")
         break
-      send_message(CURRENT_USER[0], receiver, processed_message)
+      send_message(SESSION_INFO["username"], receiver, processed_message)
     load_user_menu()
     return
 
   elif user_choice == "View my messages":
-    view_msgs(CURRENT_USER[0])
+    view_msgs(SESSION_INFO["username"])
     load_user_menu()
   elif user_choice == "Logout":
-    CURRENT_USER[0] = ""
-    return start()
+    logout(SESSION_INFO["username"])
+    start()
   elif user_choice == "Delete account":
 
     actions = ["Go back", "Delete forever"]
@@ -141,19 +209,21 @@ def load_user_menu():
     choice = curses.wrapper(menu, actions, message)
 
     if choice == "Delete forever":
-      delete_account(CURRENT_USER[0])
+      delete_account(SESSION_INFO["username"])
       return start()
     else:
       load_user_menu()
 
 def start():
   # start menu, lets user pick their first action
+  background_listener()
   actions = ["Login", "Create account", "List accounts", "Quit Messenger"]
   message = "\nWelcome to Messenger! What would you like to do?\n\n"
   name = curses.wrapper(menu, actions, message)
 
   if name == "Quit Messenger":
     send(Operations.SEND_MESSAGE, DISCONNECT_MESSAGE)
+    RECEIVE_EVENT.clear()
     return
 
   elif name == "Create account":
@@ -179,8 +249,7 @@ def start():
       return start()
 
   elif name == "List accounts":
-    encoded_data = send(Operations.LIST_ACCOUNTS, "")
-    decoded_data = deserialize(encoded_data) # get accounts back
+    decoded_data = send(Operations.LIST_ACCOUNTS, "")
     if decoded_data["operation"] == Operations.SUCCESS:
       accounts = decoded_data["info"].split("\n")
       print("\nPlease input a text wildcard. * matches everything, ? matches any single character, [seq] matches any character in seq, and [!seq] matches any character not in seq.\n")
@@ -195,5 +264,12 @@ def start():
       input("Press enter to return to the main menu.\n\n")
     
     return start()
+
+def signal_handler(sig, frame):
+  send(Operations.SEND_MESSAGE, DISCONNECT_MESSAGE)
+  RECEIVE_EVENT.clear()
+  client.close()
+
+signal.signal(signal.SIGINT, signal_handler)
 
 start()

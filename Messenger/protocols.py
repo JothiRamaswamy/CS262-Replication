@@ -4,9 +4,6 @@ FORMAT = "utf-8"
 def serialize(data):
   data_string = VERSION.encode(FORMAT)
   data_string += data["operation"].encode(FORMAT)
-  # msgsize = str(len(data["info"])).encode(FORMAT)
-  # print(HEADER - len(msgsize))
-  # data_string += msgsize + b' ' * (HEADER - len(msgsize))
   data_string += data["info"].encode(FORMAT)
   return data_string
 
