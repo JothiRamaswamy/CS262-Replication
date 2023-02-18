@@ -47,7 +47,6 @@ def handle_client(conn, addr):
   
         conn.send(send_length)
         conn.send(serialized_data)
-        print(ACTIVE_USERS)
 
       elif operation == Operations.DELETE_ACCOUNT: # client wants to delete
         data = delete_account(info)
@@ -65,6 +64,7 @@ def handle_client(conn, addr):
           send_length = calculate_send_length(serialized_data)
   
           conn.send(send_length)
+          print("sent length {}".format(send_length))
           conn.send(serialized_data)
         else:
           accounts = USERS.keys()
@@ -75,6 +75,7 @@ def handle_client(conn, addr):
           send_length = calculate_send_length(serialized_data)
   
           conn.send(send_length)
+          print("sent length {}".format(send_length))
           conn.send(serialized_data)
 
       elif operation == Operations.LOGIN: # client login
@@ -85,13 +86,14 @@ def handle_client(conn, addr):
   
         conn.send(send_length)
         conn.send(serialized_data)
-        print(ACTIVE_USERS)
 
-      elif operation == Operations.LOGOUT: # client login
+      elif operation == Operations.LOGOUT:
         data = logout(info)
         serialized_data = serialize(data)
+        send_length = calculate_send_length(serialized_data)
+  
+        conn.send(send_length)
         conn.send(serialized_data)
-        print(ACTIVE_USERS)
 
       elif operation == Operations.SEND_MESSAGE: # client send message
         if info == DISCONNECT_MESSAGE:
@@ -100,7 +102,9 @@ def handle_client(conn, addr):
           sender, receiver, msg = info.split("\n")
           data = send_message(sender, receiver, msg)
           if receiver in ACTIVE_USERS:
-            serialized_msg = serialize(msg)
+            serialized_msg = serialize(deliver_msgs_immediately(msg))
+            send_length = calculate_send_length(serialized_msg)
+            ACTIVE_USERS[receiver].send(send_length)
             ACTIVE_USERS[receiver].send(serialized_msg)
           serialized_data = serialize(data)
           send_length = calculate_send_length(serialized_data)
@@ -148,10 +152,8 @@ def login(username, conn):
   return {"operation": Operations.ACCOUNT_DOES_NOT_EXIST, "info": ""}
 
 def logout(username):
-  if username in ACTIVE_USERS:
-    del ACTIVE_USERS[username]
-    return {"operation": Operations.SUCCESS, "info": ""}
-  return {"operation": Operations.ACCOUNT_DOES_NOT_EXIST, "info": ""}
+  del ACTIVE_USERS[username]
+  return {"operation": Operations.SUCCESS, "info": ""}
 
 def create_account(username, conn):
   if username in USERS:
@@ -173,7 +175,7 @@ def send_message(sender, receiver, msg):
     return {"operation": Operations.SUCCESS, "info": ""}
   return {"operation": Operations.FAILURE, "info": ""}
 
-def deliver_message_now(msg):
+def deliver_msgs_immediately(msg):
   return {"operation": Operations.RECEIVE_CURRENT_MESSAGE, "info": msg}
 
 def view_msgs(username):

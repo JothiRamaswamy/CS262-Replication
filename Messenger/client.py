@@ -4,7 +4,7 @@ import socket
 import curses
 from threading import Thread
 import threading
-from time import time
+import time
 
 from importlib_metadata import sys
 
@@ -27,15 +27,17 @@ client.connect(ADDR)
 
 def receive_incoming_messages():
   try:
-    data = client.recv(HEADER, socket.MSG_DONTWAIT)
-    if not len(data):
+    msg_length = client.recv(HEADER, socket.MSG_DONTWAIT)
+    if not len(msg_length):
       print("[DISCONNECTED] You have been disconnected from the server.")
       client.close()
-    decoded_data = data.decode(FORMAT)
-    if decoded_data:
-      deserialized_data = deserialize(decoded_data)
+    if int(msg_length.decode(FORMAT)):
+      length = int(msg_length.decode(FORMAT))
+      deserialized_data = deserialize(client.recv(length))
       if deserialized_data["operation"] == Operations.RECEIVE_CURRENT_MESSAGE:
         return deserialized_data
+  except BlockingIOError:
+    pass
   except Exception as e:
     logging.exception(e)
 
@@ -45,7 +47,7 @@ def poll_incoming_messages():
       if SESSION_INFO["background_listen"]:
         message = receive_incoming_messages()
         if message:
-          print("\r[INCOMING MESSAGE]{}".format(message))
+          print("\r[INCOMING MESSAGE]{}".format(message["info"]))
       time.sleep(1)
     except Exception as e:
       logging.exception(e)
@@ -53,6 +55,7 @@ def poll_incoming_messages():
 
 def background_listener():
   background_thread = threading.Thread(target=poll_incoming_messages)
+  print("Starting background thread...")
   background_thread.start()
 
 # def print_incoming_messages():
@@ -67,20 +70,29 @@ def send(operation, msg):
   SESSION_INFO["background_listen"] = False
   client.send(send_length)
   client.send(serialized_message)
+  message_length = client.recv(HEADER).decode(FORMAT)
   returned_operation = Operations.RECEIVE_CURRENT_MESSAGE
   while returned_operation == Operations.RECEIVE_CURRENT_MESSAGE:
-    message_length = client.recv(64).decode(FORMAT)
     if message_length:
       message_length = int(message_length)
     else:
       message_length = 1
-    returned_data = deserialize(client.recv(message_length))
-    returned_operation = returned_data["operation"]
-    if returned_operation == Operations.RECEIVE_CURRENT_MESSAGE:
-      print("\r[INCOMING MESSAGE]{}".format(returned_data["info"])) # redirect to background function
-    else:
-      SESSION_INFO["background_listen"] = True
-      return returned_data
+    try:
+      returned_data = client.recv(message_length)
+      if len(returned_data):
+        deserialized_data = deserialize(returned_data)
+        returned_operation = deserialized_data["operation"]
+        if returned_operation == Operations.RECEIVE_CURRENT_MESSAGE:
+          # print("\r[INCOMING MESSAGE]{}".format(deserialized_data["info"]))
+          pass
+        else:
+          SESSION_INFO["background_listen"] = True
+          return deserialized_data
+      else:
+        return
+    except Exception as e:
+      print(e)
+      return
 
 def login():
   received_list = send(Operations.LIST_ACCOUNTS, "")
@@ -143,6 +155,7 @@ def send_message(sender, receiver, msg):
     status = received_info["operation"]
     if status == "00":
       return 0
+    print(status)
     print("Message send failure, receiving account does not exist")
     return 1
   except:
@@ -150,8 +163,7 @@ def send_message(sender, receiver, msg):
 
 def view_msgs(username):
 
-  received_info = send(Operations.VIEW_UNDELIVERED_MESSAGES, username)
-  data = deserialize(received_info)
+  data = send(Operations.VIEW_UNDELIVERED_MESSAGES, username)
 
   if data["operation"] == Operations.FAILURE:
     print("\n" + SESSION_INFO["username"] + "'s account does not have any unread messages.")
@@ -172,8 +184,7 @@ def load_user_menu():
 
   if user_choice == "Send messages":
 
-    encoded_data = send(Operations.LIST_ACCOUNTS, "")
-    decoded_data = deserialize(encoded_data) # get accounts back
+    decoded_data = send(Operations.LIST_ACCOUNTS, "")
     accounts = decoded_data["info"].split("\n")
     message = "\nWho would you like to send messages to?\n\n"
 
@@ -195,7 +206,7 @@ def load_user_menu():
     load_user_menu()
   elif user_choice == "Logout":
     logout(SESSION_INFO["username"])
-    return start()
+    start()
   elif user_choice == "Delete account":
 
     actions = ["Go back", "Delete forever"]
@@ -210,7 +221,7 @@ def load_user_menu():
 
 def start():
   # start menu, lets user pick their first action
-  # background_listener()
+  background_listener()
   actions = ["Login", "Create account", "List accounts", "Quit Messenger"]
   message = "\nWelcome to Messenger! What would you like to do?\n\n"
   name = curses.wrapper(menu, actions, message)
@@ -242,8 +253,7 @@ def start():
       return start()
 
   elif name == "List accounts":
-    encoded_data = send(Operations.LIST_ACCOUNTS, "")
-    decoded_data = deserialize(encoded_data) # get accounts back
+    decoded_data = send(Operations.LIST_ACCOUNTS, "")
     if decoded_data["operation"] == Operations.SUCCESS:
       accounts = decoded_data["info"].split("\n")
       print("\nList of accounts currently on the server:\n")
