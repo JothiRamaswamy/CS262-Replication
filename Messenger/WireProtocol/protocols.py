@@ -1,8 +1,7 @@
-VERSION = "1"
 FORMAT = "utf-8"
 
 def serialize(data):
-  data_string = VERSION.encode(FORMAT)
+  data_string = data["version"].encode(FORMAT)
   data_string += data["operation"].encode(FORMAT)
   data_string += data["info"].encode(FORMAT)
   return data_string
@@ -10,10 +9,7 @@ def serialize(data):
 def deserialize(data):
   data = data.decode()
   decoded_data = {}
-  VERSION_SIZE = data[0]
-  if VERSION_SIZE != VERSION:
-    return "Wire Protocols do not match"
-  decoded_data["version"] = VERSION_SIZE
+  decoded_data["version"] = data[0]
   decoded_data["operation"] = data[1:3]
   decoded_data["info"] = data[3:]
 
