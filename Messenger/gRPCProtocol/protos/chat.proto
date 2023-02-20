@@ -1,0 +1,46 @@
+syntax = "proto3";
+
+enum ServerOperation {
+    SUCCESS = 0;
+    FAILURE = 1;
+    ACCOUNT_ALREADY_EXISTS = 2;
+    ACCOUNT_DOES_NOT_EXIST = 3;
+    LIST_OF_ACCOUNTS = 4;
+    LIST_OF_MESSAGES = 5;
+}
+
+enum ClientOperation {
+    LOGIN = 0;
+    CREATE_ACCOUNT = 1;
+    DELETE_ACCOUNT = 2;
+    LIST_ACCOUNTS = 3;
+    SEND_MESSAGE = 4;
+    VIEW_UNDELIVERED_MESSAGES = 5;
+    LOGOUT = 6;
+    QUIT_MESSENGER = 7;
+
+    RECEIVE_CURRENT_MESSAGE = 8;
+}
+
+message ClientMessage {
+    ClientOperation operation = 1;
+    string info = 2;
+  }
+
+message ServerMessage {
+    ServerOperation operation = 1;
+    string info = 2;
+}
+
+service ChatService {
+
+    rpc LoginClient (ClientMessage) returns (ServerMessage) {}
+    rpc CreateAccountClient (ClientMessage) returns (ServerMessage) {}
+    rpc DeleteAccountClient (ClientMessage) returns (ServerMessage) {}
+    rpc ListAccountClient (ClientMessage) returns (ServerMessage) {}
+    rpc SendMessageClient (ClientMessage) returns (ServerMessage) {}
+    rpc ViewMessageClient (ClientMessage) returns (ServerMessage) {}
+    rpc LogoutClient (ClientMessage) returns (ServerMessage) {}
+    rpc QuitClient (ClientMessage) returns (ServerMessage) {}
+
+}
