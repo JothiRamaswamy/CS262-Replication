@@ -7,166 +7,164 @@ from operations import Operations
 from user import User
 from protocols import deserialize, serialize
 
-PORT = 5050
-SERVER_NAME = socket.gethostname() # gets name representing computer on the network
-SERVER = socket.gethostbyname(SERVER_NAME) # gets host IPv4 address
-HEADER = 64
-ADDR = (SERVER, PORT)
-FORMAT = "utf-8"
-DISCONNECT_MESSAGE = "!DISCONNECT"
-SEPARATE_CHARACTER = "\n"
-VERSION = "1"
+class WireServer:
 
-USER_LOCK = threading.Lock()
-USERS = {} # dictionary holding all user objects { key: username, value: user object}
-ACTIVE_USERS = {} # holds currently logged in users { key: username, value: conn}
+  PORT = 5050
+  SERVER_HOST_NAME = socket.gethostname() # gets name representing computer on the network
+  SERVER_HOST = socket.gethostbyname(SERVER_HOST_NAME) # gets host IPv4 address
+  HEADER = 64
+  ADDR = (SERVER_HOST, PORT)
+  FORMAT = "utf-8"
+  DISCONNECT_MESSAGE = "!DISCONNECT"
+  SEPARATE_CHARACTER = "\n"
+  VERSION = "1"
 
-server = socket.socket(socket.AF_INET, socket.SOCK_STREAM) # create socket
-server.bind(ADDR)
+  USER_LOCK = threading.Lock()
+  USERS = {} # dictionary holding all user objects { key: username, value: user object}
+  ACTIVE_USERS = {} # holds currently logged in users { key: username, value: conn}
 
-def handle_client(conn, addr):
-  print(f"[NEW CONNECTION] {addr} connected.")
+  SERVER = socket.socket(socket.AF_INET, socket.SOCK_STREAM) # create socket
 
-  connected = True
-  while connected:
-    message_length = conn.recv(HEADER).decode(FORMAT) # length of message (no need to serialize/deserialize)
-    if message_length: # check that there actually is a message
-      message_length = int(message_length)
-      decoded_data = deserialize(conn.recv(message_length)) # message contents, must deserialize
+  def handle_client(self, conn, addr):
+    print(f"[NEW CONNECTION] {addr} connected.")
 
-      recv_version = decoded_data["version"] # TODO check client/server version are same
-      if recv_version != VERSION:
-        print("Wire Protocol Versions do not match")
-        connected = False
-      operation = decoded_data["operation"]
-      info = decoded_data["info"]
+    connected = True
+    while connected:
+      message_length = conn.recv(self.HEADER).decode(self.FORMAT) # length of message (no need to serialize/deserialize)
+      if message_length: # check that there actually is a message
+        message_length = int(message_length)
+        decoded_data = deserialize(conn.recv(message_length)) # message contents, must deserialize
 
-      if operation == Operations.CREATE_ACCOUNT: # client wants to create account
-        data = create_account(info, conn)
-        package_send(data, conn)
-
-      elif operation == Operations.DELETE_ACCOUNT: # client wants to delete
-        data = delete_account(info)
-        package_send(data, conn)
-
-      elif operation == Operations.LIST_ACCOUNTS: # client list all
-        data = list_accounts()
-        package_send(data, conn)
-
-      elif operation == Operations.LOGIN: # client login
-        data = login(info, conn)
-        package_send(data, conn)
-
-      elif operation == Operations.LOGOUT:
-        data = logout(info)
-        package_send(data, conn)
-
-      elif operation == Operations.SEND_MESSAGE: # client send message
-        if info == DISCONNECT_MESSAGE:
+        recv_version = decoded_data["version"] # TODO check client/server version are same
+        if recv_version != self.VERSION:
+          print("Wire Protocol Versions do not match")
           connected = False
-          data = payload(Operations.SUCCESS, "")
-        else:
-          sender, receiver, msg = info.split("\n")
-          data = send_message(sender, receiver, msg)
-          if receiver in ACTIVE_USERS:
-            msg_data = deliver_msgs_immediately(msg)
-            package_send(msg_data, ACTIVE_USERS[receiver])
-        package_send(data, conn)
+        operation = decoded_data["operation"]
+        info = decoded_data["info"]
 
-      elif operation == Operations.VIEW_UNDELIVERED_MESSAGES: # client view undelivered
-        data = view_msgs(info)
-        package_send(data, conn)
-  
-  for key, value in ACTIVE_USERS.items():
-    if value == conn:
-      del ACTIVE_USERS[key]
-      break
-  print("close connection")
-  conn.close()
+        if operation == Operations.CREATE_ACCOUNT: # client wants to create account
+          data = self.create_account(info, conn)
+          self.package_send(data, conn)
 
-def package_send(data, conn):
-  serialized_data = serialize(data)
-  send_length = calculate_send_length(serialized_data)
-  conn.send(send_length)
-  conn.send(serialized_data)
+        elif operation == Operations.DELETE_ACCOUNT: # client wants to delete
+          data = self.delete_account(info)
+          self.package_send(data, conn)
 
-def start(): # handle and distribute new connections
-  server.listen()
-  print(f"[LISTENING] Server is listening on {SERVER}")
-  while True:
-    conn, addr = server.accept() # blocking line of code
-    thread = threading.Thread(target = handle_client, args = (conn, addr))
-    thread.start()
-    print(f"[ACTIVE CONNECTIONS] {threading.active_count() - 1}")
+        elif operation == Operations.LIST_ACCOUNTS: # client list all
+          data = self.list_accounts()
+          self.package_send(data, conn)
 
-def calculate_send_length(serialized_data):
-  message_length = len(serialized_data)
-  send_length = str(message_length).encode(FORMAT)
-  send_length += b" " * (HEADER - len(send_length))
+        elif operation == Operations.LOGIN: # client login
+          data = self.login(info, conn)
+          self.package_send(data, conn)
 
-  return send_length
+        elif operation == Operations.LOGOUT:
+          data = self.logout(info)
+          self.package_send(data, conn)
 
-def login(username, conn):
-  with USER_LOCK:
-    if username in USERS:
-      ACTIVE_USERS[username] = conn
-      return payload(Operations.SUCCESS, "")
-  return payload(Operations.ACCOUNT_DOES_NOT_EXIST, "")
+        elif operation == Operations.SEND_MESSAGE: # client send message
+          if info == self.DISCONNECT_MESSAGE:
+            connected = False
+            data = self.payload(Operations.SUCCESS, "")
+          else:
+            sender, receiver, msg = info.split("\n")
+            data = self.send_message(sender, receiver, msg)
+            if receiver in self.ACTIVE_USERS:
+              msg_data = self.deliver_msgs_immediately(msg)
+              self.package_send(msg_data, self.ACTIVE_USERS[receiver])
+          self.package_send(data, conn)
 
-def logout(username):
-  with USER_LOCK:
-    if username in ACTIVE_USERS:
-      del ACTIVE_USERS[username]
-      return payload(Operations.SUCCESS, "")
-  return payload(Operations.ACCOUNT_DOES_NOT_EXIST, "")
+        elif operation == Operations.VIEW_UNDELIVERED_MESSAGES: # client view undelivered
+          data = self.view_msgs(info)
+          self.package_send(data, conn)
+    
+    for key, value in self.ACTIVE_USERS.items():
+      if value == conn:
+        del self.ACTIVE_USERS[key]
+        break
+    conn.close()
 
-def create_account(username, conn):
-  with USER_LOCK:
-    if username in USERS:
-      return payload(Operations.ACCOUNT_ALREADY_EXISTS, "")
-    new_user = User(username)
-    USERS[username] = new_user
-    ACTIVE_USERS[username] = conn
-  return payload(Operations.SUCCESS, "")
+  def package_send(self, data, conn):
+    serialized_data = serialize(data)
+    send_length = self.calculate_send_length(serialized_data)
+    conn.send(send_length)
+    conn.send(serialized_data)
 
-def delete_account(username):
-  with USER_LOCK:
-    if username in USERS and username in ACTIVE_USERS:
-      del USERS[username]
-      del ACTIVE_USERS[username]
-      return payload(Operations.SUCCESS, "")
-    return payload(Operations.ACCOUNT_DOES_NOT_EXIST, "")
+  def start(self): # handle and distribute new connections
+    print("[STARTING] Server is starting at IPv4 Address " + str(self.SERVER_HOST) + " ...")
+    self.SERVER.listen()
+    print(f"[LISTENING] Server is listening on {self.SERVER_HOST}")
+    while True:
+      conn, addr = self.SERVER.accept() # blocking line of code
+      thread = threading.Thread(target = self.handle_client, args = (conn, addr))
+      thread.start()
+      print(f"[ACTIVE CONNECTIONS] {threading.active_count() - 1}")
 
-def send_message(sender, receiver, msg):
-  with USER_LOCK:
-    if receiver in USERS:
-      if receiver not in ACTIVE_USERS:
-        USERS[receiver].queue_message(msg)
-      return payload(Operations.SUCCESS, "")
-  return payload(Operations.FAILURE, "")
+  def calculate_send_length(self, serialized_data):
+    message_length = len(serialized_data)
+    send_length = str(message_length).encode(self.FORMAT)
+    send_length += b" " * (self.HEADER - len(send_length))
 
-def deliver_msgs_immediately(msg):
-  return payload(Operations.RECEIVE_CURRENT_MESSAGE, msg)
+    return send_length
 
-def view_msgs(username):
-  with USER_LOCK:
-    if not USERS[username].undelivered_messages: # handle case of no undelivered messages
-      return payload(Operations.FAILURE, "")
-  
-    messages = SEPARATE_CHARACTER.join(USERS[username].get_current_messages())
-  return payload(Operations.SUCCESS, messages)
+  def login(self, username, conn):
+    with self.USER_LOCK:
+      if username in self.USERS:
+        self.ACTIVE_USERS[username] = conn
+        return self.payload(Operations.SUCCESS, "")
+    return self.payload(Operations.ACCOUNT_DOES_NOT_EXIST, "")
 
-def list_accounts():
-  with USER_LOCK:
-    if not USERS:
-      return payload(Operations.FAILURE, "")
-    else:
-      accounts = USERS.keys()
-      accounts_string = "\n".join(accounts)
-      return payload(Operations.SUCCESS, accounts_string)
+  def logout(self, username):
+    with self.USER_LOCK:
+      if username in self.ACTIVE_USERS:
+        del self.ACTIVE_USERS[username]
+        return self.payload(Operations.SUCCESS, "")
+    return self.payload(Operations.ACCOUNT_DOES_NOT_EXIST, "")
 
-def payload(operation, info):
-  return {"version": VERSION, "operation": operation, "info": info}
+  def create_account(self, username, conn):
+    with self.USER_LOCK:
+      if username in self.USERS:
+        return self.payload(Operations.ACCOUNT_ALREADY_EXISTS, "")
+      new_user = User(username)
+      self.USERS[username] = new_user
+      self.ACTIVE_USERS[username] = conn
+    return self.payload(Operations.SUCCESS, "")
 
-print("[STARTING] Server is starting at IPv4 Address " + str(SERVER) + " ...")
-start()
+  def delete_account(self, username):
+    with self.USER_LOCK:
+      if username in self.USERS and username in self.ACTIVE_USERS:
+        del self.USERS[username]
+        del self.ACTIVE_USERS[username]
+        return self.payload(Operations.SUCCESS, "")
+      return self.payload(Operations.ACCOUNT_DOES_NOT_EXIST, "")
+
+  def send_message(self, sender, receiver, msg):
+    with self.USER_LOCK:
+      if receiver in self.USERS:
+        if receiver not in self.ACTIVE_USERS:
+          self.USERS[receiver].queue_message(msg)
+        return self.payload(Operations.SUCCESS, "")
+    return self.payload(Operations.FAILURE, "")
+
+  def deliver_msgs_immediately(self, msg):
+    return self.payload(Operations.RECEIVE_CURRENT_MESSAGE, msg)
+
+  def view_msgs(self, username):
+    with self.USER_LOCK:
+      if not self.USERS[username].undelivered_messages: # handle case of no undelivered messages
+        return self.payload(Operations.FAILURE, "")
+    
+      messages = self.SEPARATE_CHARACTER.join(self.USERS[username].get_current_messages())
+    return self.payload(Operations.SUCCESS, messages)
+
+  def list_accounts(self):
+    with self.USER_LOCK:
+      if not self.USERS:
+        return self.payload(Operations.FAILURE, "")
+      else:
+        accounts = self.USERS.keys()
+        accounts_string = "\n".join(accounts)
+        return self.payload(Operations.SUCCESS, accounts_string)
+
+  def payload(self, operation, info):
+    return {"version": self.VERSION, "operation": operation, "info": info}

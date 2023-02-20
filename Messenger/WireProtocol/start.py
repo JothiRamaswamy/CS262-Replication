@@ -1,15 +1,11 @@
 import curses
 import fnmatch
-from http import client
-import signal
-import threading
-from importlib_metadata import sys
+import sys
+from server import WireServer
 from operations import Operations
 from menu import menu
 
 from client import WireClient
-
-this_client = WireClient()
 
 def load_user_menu(this_client):
 
@@ -126,7 +122,16 @@ def wrap_input(string):
         return this_client.quit_messenger()
 
 
-
 if __name__ == "__main__":
-  this_client.CLIENT.connect(this_client.ADDR)
-  start(this_client)
+  if len(sys.argv) < 2:
+    print("please specify running client or server")
+  elif sys.argv[1] == "client":
+    this_client = WireClient()
+    this_client.CLIENT.connect(this_client.ADDR)
+    start(this_client)
+  elif sys.argv[1] == "server":
+    this_server = WireServer()
+    this_server.bind(this_server.ADDR)
+    this_server.start()
+  else:
+    print("please specify running client or server")
