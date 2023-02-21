@@ -21,7 +21,6 @@ import grpc
 import chat_pb2
 import chat_pb2_grpc
 from user import User
-from operations import ClientOperation, ServerOperation
 
 
 class ChatService(chat_pb2_grpc.ChatServiceServicer):
@@ -44,34 +43,34 @@ class ChatService(chat_pb2_grpc.ChatServiceServicer):
         with self.USER_LOCK:
             if request.info in self.USERS:
                 self.ACTIVE_USERS[request.info] = request.info
-                return chat_pb2.ServerMessage(operation=ServerOperation.Value("SUCCESS"), info="")
-        return chat_pb2.ServerMessage(operation=ServerOperation.Value("FAILURE"), info="")
+                return chat_pb2.ServerMessage(operation=chat_pb2.SUCCESS, info="")
+        return chat_pb2.ServerMessage(operation=chat_pb2.FAILURE, info="")
 
     def CreateAccountClient(self, request, context):
         with self.USER_LOCK:
             if request.info in self.USERS:
-                return chat_pb2.ServerMessage(operation=ServerOperation.Value("ACCOUNT_ALREADY_EXISTS"), info="")
+                return chat_pb2.ServerMessage(operation=chat_pb2.ACCOUNT_ALREADY_EXISTS, info="")
             new_user = User(request.info)
             self.USERS[request.info] = new_user
             self.ACTIVE_USERS[request.info] = request.info
-        return chat_pb2.ServerMessage(operation=ClientOperation.Value("SUCCESS"), info="")
+        return chat_pb2.ServerMessage(operation=chat_pb2.SUCCESS, info="")
 
     def DeleteAccountClient(self, request, context):
         with self.USER_LOCK:
             if request.info in self.USERS and request.info in self.ACTIVE_USERS:
                 del self.USERS[request.info]
                 del self.ACTIVE_USERS[request.info]
-                return chat_pb2.ServerMessage(operation=ClientOperation.SUCCESS, info="")
-        return chat_pb2.ServerMessage(operation=ServerOperation.ACCOUNT_DOES_NOT_EXIST, info="")
+                return chat_pb2.ServerMessage(operation=chat_pb2.SUCCESS, info="")
+        return chat_pb2.ServerMessage(operation=chat_pb2.ACCOUNT_DOES_NOT_EXIST, info="")
 
     def ListAccountClient(self, request, context):
         with self.USER_LOCK:
             if not self.USERS:
-                return chat_pb2.ServerMessage(operation=ServerOperation.Value("FAILURE"), info="")
+                return chat_pb2.ServerMessage(operation=chat_pb2.FAILURE, info="")
             else:
                 accounts = self.USERS.keys()
                 accounts_string = "\n".join(accounts)
-                return chat_pb2.ServerMessage(operation=ClientOperation.Value("SUCCESS"), info=accounts_string)
+                return chat_pb2.ServerMessage(operation=chat_pb2.SUCCESS, info=accounts_string)
     
     def SendMessageClient(self, request, context):
         sender, receiver, msg = request.info.split("\n")
@@ -79,23 +78,23 @@ class ChatService(chat_pb2_grpc.ChatServiceServicer):
             if receiver in self.USERS:
                 if receiver not in self.ACTIVE_USERS:
                     self.USERS[receiver].queue_message(msg)
-                    return chat_pb2.ServerMessage(operation=ClientOperation.Value("SUCCESS"), info="")
+                    return chat_pb2.ServerMessage(operation=chat_pb2.SUCCESS, info="")
             else:
-                return chat_pb2.ServerMessage(operation=ServerOperation.Value("FAILURE"), info="")
+                return chat_pb2.ServerMessage(operation=chat_pb2.FAILURE, info="")
 
     def ViewMessageClient(self, request, context):
         with self.USER_LOCK:
             if not self.USERS[request.info].undelivered_messages: # handle case of no undelivered messages
-                return chat_pb2.ServerMessage(operation=ServerOperation.Value("FAILURE"), info="")
+                return chat_pb2.ServerMessage(operation=chat_pb2.FAILURE, info="")
             messages = self.SEPARATE_CHARACTER.join(self.USERS[request.info].get_current_messages())
-        return chat_pb2.ServerMessage(operation=ClientOperation.Value("SUCCESS"), info=messages)
+        return chat_pb2.ServerMessage(operation=chat_pb2.SUCCESS, info=messages)
 
     def LogoutClient(self, request, context):
         with self.USER_LOCK:
             if request.info in self.ACTIVE_USERS:
                 del self.ACTIVE_USERS[request.info]
-                return chat_pb2.ServerMessage(operation=ClientOperation.Value("SUCCESS"), info="")
-        return chat_pb2.ServerMessage(operation=ClientOperation.Value("FAILURE"), info="")
+                return chat_pb2.ServerMessage(operation=chat_pb2.SUCCESS, info="")
+        return chat_pb2.ServerMessage(operation=chat_pb2.FAILURE, info="")
 
     def QuitClient(self, request, context):
-        return chat_pb2.ServerMessage(operation=ClientOperation.Value("QUIT_MESSENGER"), info="")
+        return chat_pb2.ServerMessage(operation=chat_pb2.QUIT_MESSENGER, info="")
