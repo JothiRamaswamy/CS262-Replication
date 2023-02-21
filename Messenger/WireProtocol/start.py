@@ -63,7 +63,6 @@ def load_user_menu(this_client):
 
 def start(this_client):
   # start menu, lets user pick their first action
-  this_client.background_listener()
   actions = ["Login", "Create account", "List accounts", "Quit Messenger"]
   message = "\nWelcome to Messenger! What would you like to do?\n\n"
   try:
@@ -135,6 +134,7 @@ if __name__ == "__main__":
   elif sys.argv[1] == "client":
     this_client = WireClient()
     this_client.CLIENT.connect(this_client.ADDR)
+    this_client.background_listener()
     start(this_client)
   elif sys.argv[1] == "server":
     this_server = WireServer()
