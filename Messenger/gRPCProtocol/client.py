@@ -11,6 +11,8 @@ from menu import menu
 
 from chat_pb2_grpc import ChatServiceStub
 
+import chat_pb2
+
 class Client:
 
     PORT = 5050
@@ -94,8 +96,11 @@ class Client:
         #     print(str(j + 1) + ". " + str(message))
         return 0
 
-    def quit_messenger(self):
-        pass
+    def quit_messenger(self, stub: ChatServiceStub):
+        client_message = chat_pb2.ClientMessage(info="")
+        server_reply = stub.QuitClient(client_message)
+        print(server_reply)
+        return
     # todo: figure out how to quit gRPC
     #   try:
     #     self.send(Operations.SEND_MESSAGE, self.DISCONNECT_MESSAGE)

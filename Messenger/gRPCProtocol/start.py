@@ -4,7 +4,7 @@ import sys
 import chat_pb2
 from chat_pb2_grpc import ChatServiceStub
 from client import Client
-from chatservice_server import ChatService
+from server import ChatService
 from menu import menu
 import grpc
 import chat_pb2_grpc
@@ -66,9 +66,8 @@ def start(this_client: Client, stub: ChatServiceStub):
   except KeyboardInterrupt:
     return this_client.quit_messenger()
 
-
   if name == "Quit Messenger" or name == 0:
-    return this_client.quit_messenger()
+    return this_client.quit_messenger(stub)
 
   elif name == "Create account":
     print("\nWelcome to messenger! Please input a username to join or EXIT to exit.\n")

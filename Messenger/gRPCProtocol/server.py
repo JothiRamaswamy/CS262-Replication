@@ -21,6 +21,7 @@ import grpc
 import chat_pb2
 import chat_pb2_grpc
 from user import User
+from operations import ClientOperation, ServerOperation
 
 
 class ChatService(chat_pb2_grpc.ChatServiceServicer):
@@ -60,8 +61,8 @@ class ChatService(chat_pb2_grpc.ChatServiceServicer):
             if request.info in self.USERS and request.info in self.ACTIVE_USERS:
                 del self.USERS[request.info]
                 del self.ACTIVE_USERS[request.info]
-                return chat_pb2.ServerMessage(operation=ClientOperation.Value("SUCCESS"), info="")
-        return chat_pb2.ServerMessage(operation=ServerOperation.Value("ACCOUNT_DOES_NOT_EXIST"), info="")
+                return chat_pb2.ServerMessage(operation=ClientOperation.SUCCESS, info="")
+        return chat_pb2.ServerMessage(operation=ServerOperation.ACCOUNT_DOES_NOT_EXIST, info="")
 
     def ListAccountClient(self, request, context):
         with self.USER_LOCK:
@@ -98,7 +99,3 @@ class ChatService(chat_pb2_grpc.ChatServiceServicer):
 
     def QuitClient(self, request, context):
         return chat_pb2.ServerMessage(operation=ClientOperation.Value("QUIT_MESSENGER"), info="")
-
-if __name__ == '__main__':
-    logging.basicConfig()
-    serve()
