@@ -29,7 +29,7 @@ class Client:
         received_info = stub.LoginClient(chat_pb2.ClientMessage(operation=chat_pb2.LOGIN, info=username))
         status = received_info.operation
         if status == chat_pb2.SUCCESS:
-            # todo: update grpc client w session info["username"] = username
+            self.SESSION_INFO["username"] = username
             return 0
         elif status == chat_pb2.ACCOUNT_DOES_NOT_EXIST:
             print("\nThe username you entered does not exist on the server. Please try again or input EXIT to exit.\n")
@@ -39,7 +39,7 @@ class Client:
         received_info = stub.CreateAccountClient(chat_pb2.ClientMessage(operation=chat_pb2.CREATE_ACCOUNT, info=username))
         status = received_info.operation
         if status == chat_pb2.SUCCESS:
-            # todo: update grpc client w session info["username"] = username
+            self.SESSION_INFO["username"] = username
             return 0
         print("\nThe username you entered already exists on the server. Please try again or input EXIT to exit.\n")
         return 1
@@ -48,7 +48,7 @@ class Client:
         received_info = stub.DeleteAccountClient(chat_pb2.ClientMessage(operation=chat_pb2.DELETE_ACCOUNT, info=username))
         status = received_info.operation
         if status == chat_pb2.SUCCESS:
-            # todo: update grpc client w session info["username"] = ""
+            self.SESSION_INFO["username"] = ""
             return 0
         print("Deletion failure")
         return 1
@@ -57,7 +57,7 @@ class Client:
         received_info = stub.LogoutClient(chat_pb2.ClientMessage(operation=chat_pb2.LOGOUT, info=username))
         status = received_info.operation
         if status == chat_pb2.SUCCESS:
-            # todo: update grpc client w session info["username"] = ""
+            self.SESSION_INFO["username"] = ""
             return 0
         print("Logout failure")
         return 1
@@ -139,13 +139,13 @@ class Client:
     #       logging.exception(e)
     #       break
 
-    def get_login_input(self):
-      received_list = self.list_accounts()
+    def get_login_input(self, stub: ChatServiceStub):
+      received_list = self.list_accounts(stub)
       if received_list != 1:
-        accounts = received_list["info"].split("\n")
+        accounts = received_list.info.split("\n")
         message = "\nChoose an account:\n\n"
         username = curses.wrapper(menu, accounts, message)
-        return self.login(username)
+        return self.login(username, stub)
       else:
         print("\nThere are currently no accounts on the server.\n")
         input("Press enter to return to the main menu.\n\n")

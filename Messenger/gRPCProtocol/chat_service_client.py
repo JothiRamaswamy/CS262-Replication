@@ -5,6 +5,8 @@ import logging
 import grpc
 import chat_pb2
 import chat_pb2_grpc
+from client import Client
+from start import start
 
 
 def run():
@@ -14,8 +16,8 @@ def run():
     print("Will try to greet world ...")
     with grpc.insecure_channel('localhost:50051') as channel:
         stub = chat_pb2_grpc.ChatServiceStub(channel)
-        response = stub.SayHello(chat_pb2.HelloRequest(name='you'))
-    print("Greeter client received: " + response.message)
+        this_client = Client()
+        start(this_client, stub)
 
 
 if __name__ == '__main__':
