@@ -67,7 +67,6 @@ class WireClient:
         status = received_info["operation"]
         if status == Operations.SUCCESS:
             return received_info
-        print("Account information does not exist")
         return 1
 
     def send_message(self, sender, receiver, msg):
@@ -126,7 +125,7 @@ class WireClient:
             if self.SESSION_INFO["background_listen"]:
               message = self.receive_incoming_messages()
               if message:
-                print("\r[INCOMING MESSAGE]{}".format(message["info"]))
+                print("\r\n{}".format(message["info"]))
           time.sleep(1)
         except Exception as e:
           logging.exception(e)
@@ -158,7 +157,7 @@ class WireClient:
               return
             returned_operation = deserialized_data["operation"]
             if returned_operation == Operations.RECEIVE_CURRENT_MESSAGE:
-              print("\r[INCOMING MESSAGE]{}".format(deserialized_data["info"]))
+              print("\r\n{}".format(deserialized_data["info"]))
             else:
               with self.CLIENT_LOCK:
                 self.SESSION_INFO["background_listen"] = True

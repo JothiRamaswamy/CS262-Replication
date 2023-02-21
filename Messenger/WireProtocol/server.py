@@ -151,7 +151,7 @@ class WireServer:
 
   def view_msgs(self, username):
     with self.USER_LOCK:
-      if not self.USERS[username].undelivered_messages: # handle case of no undelivered messages
+      if self.USERS[username].undelivered_messages.empty(): # handle case of no undelivered messages
         return self.payload(Operations.FAILURE, "")
     
       messages = self.SEPARATE_CHARACTER.join(self.USERS[username].get_current_messages())

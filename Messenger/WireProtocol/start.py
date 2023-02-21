@@ -19,18 +19,26 @@ def load_user_menu(this_client):
 
     decoded_data = this_client.list_accounts()
     accounts = decoded_data["info"].split("\n")
-    message = "\nWho would you like to send messages to?\n\n"
+    accounts.remove(this_client.SESSION_INFO["username"]) # users cannot send messages to themselves
 
-    receiver = wrap_menu(menu, accounts, message)
+    if len(accounts) == 0:
+      print("\nThere are currently no other users on the server.\n")
+      input("Press enter to return to the main menu.\n\n")
 
-    print("\nInput a message and press enter to share with " + receiver + " or EXIT to end the chat.\n")
-    while True:
-      message = wrap_input("")
-      processed_message = "<" + this_client.SESSION_INFO["username"] + ">" + message 
-      if message == "EXIT":
-        print(f"\n[ENDING CHAT] Ending chat with {receiver}\n")
-        break
-      this_client.send_message(this_client.SESSION_INFO["username"], receiver, processed_message)
+    else:
+      message = "\nWho would you like to send messages to?\n\n"
+
+      receiver = wrap_menu(menu, accounts, message)
+
+      print("\nInput a message and press enter to share with " + receiver + " or EXIT to end the chat.\n")
+      while True:
+        message = wrap_input("")
+        processed_message = "<NEW MESSAGE FROM " + this_client.SESSION_INFO["username"] + "> " + message
+        if message == "EXIT":
+          print(f"\n[ENDING CHAT] Ending chat with {receiver}\n")
+          break
+        this_client.send_message(this_client.SESSION_INFO["username"], receiver, processed_message)
+
     load_user_menu(this_client)
     return
 
@@ -62,7 +70,6 @@ def start(this_client):
     name = wrap_menu(menu, actions, message)
   except KeyboardInterrupt:
     return this_client.quit_messenger()
-
 
   if name == "Quit Messenger" or name == 0:
     return this_client.quit_messenger()
