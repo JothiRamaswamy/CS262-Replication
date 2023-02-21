@@ -4,7 +4,11 @@ import sys
 import chat_pb2
 from chat_pb2_grpc import ChatServiceStub
 from client import Client
+from chatservice_server import ChatService
 from menu import menu
+import grpc
+import chat_pb2_grpc
+from concurrent import futures
 
 def load_user_menu(this_client: Client, stub: ChatServiceStub):
 
@@ -122,16 +126,26 @@ def wrap_input(string):
 
 
 if __name__ == "__main__":
+
+  SERVER_HOST = "localhost:50051"
+
   if len(sys.argv) < 2:
     print("please specify running client or server")
-    # todo: fix this for gRPC
-#   elif sys.argv[1] == "client":
-#     this_client = WireClient()
-#     this_client.CLIENT.connect(this_client.ADDR)
-#     start(this_client)
-#   elif sys.argv[1] == "server":
-#     this_server = WireServer()
-#     this_server.bind(this_server.ADDR)
-#     this_server.start()
+
+  elif sys.argv[1] == "client":
+    with grpc.insecure_channel(SERVER_HOST) as channel: # channel to connect grpc, make calls
+      stub = chat_pb2_grpc.ChatServiceStub(channel)
+      client = Client()
+
+      start(client, stub)
+
+  elif sys.argv[1] == "server":
+    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
+    chat_pb2_grpc.add_ChatServiceServicer_to_server(ChatService(), server)
+    server.add_insecure_port(SERVER_HOST)
+    print("[STARTING] Server is starting at IPv4 Address " + SERVER_HOST + " ...")
+    server.start()
+    server.wait_for_termination()
+
   else:
     print("please specify running client or server")

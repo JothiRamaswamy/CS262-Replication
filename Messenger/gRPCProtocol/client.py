@@ -5,7 +5,7 @@ import socket
 import curses
 import threading
 import time
-from gRPCProtocol import chat_pb2
+import grpc
 
 from menu import menu
 

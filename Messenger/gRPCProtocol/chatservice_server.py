@@ -21,7 +21,6 @@ import grpc
 import chat_pb2
 import chat_pb2_grpc
 from user import User
-from gRPCProtocol.chat_pb2 import ClientOperation, ServerOperation
 
 
 class ChatService(chat_pb2_grpc.ChatServiceServicer):
@@ -99,17 +98,6 @@ class ChatService(chat_pb2_grpc.ChatServiceServicer):
 
     def QuitClient(self, request, context):
         return chat_pb2.ServerMessage(operation=ClientOperation.Value("QUIT_MESSENGER"), info="")
-
-
-def serve():
-    port = '50051'
-    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
-    chat_pb2_grpc.add_ChatServiceServicer_to_server(ChatService(), server)
-    server.add_insecure_port('[::]:' + port)
-    server.start()
-    print("Server started, listening on " + port)
-    server.wait_for_termination()
-
 
 if __name__ == '__main__':
     logging.basicConfig()

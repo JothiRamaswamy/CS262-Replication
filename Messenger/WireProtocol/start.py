@@ -131,7 +131,7 @@ if __name__ == "__main__":
     start(this_client)
   elif sys.argv[1] == "server":
     this_server = WireServer()
-    this_server.bind(this_server.ADDR)
+    this_server.SERVER.bind(this_server.ADDR)
     this_server.start()
   else:
     print("please specify running client or server")

@@ -1,3 +1,5 @@
+// python3 -m grpc_tools.protoc -I protos --python_out=. --grpc_python_out=. protos/chat.proto
+
 syntax = "proto3";
 
 enum ServerOperation {
@@ -32,6 +34,9 @@ message ServerMessage {
     string info = 2;
 }
 
+message Empty {
+}
+
 service ChatService {
 
     rpc LoginClient (ClientMessage) returns (ServerMessage) {}
@@ -42,5 +47,6 @@ service ChatService {
     rpc ViewMessageClient (ClientMessage) returns (ServerMessage) {}
     rpc LogoutClient (ClientMessage) returns (ServerMessage) {}
     rpc QuitClient (ClientMessage) returns (ServerMessage) {}
+    rpc ChatStream (Empty) returns (stream ServerMessage) {}
 
 }
