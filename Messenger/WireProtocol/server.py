@@ -159,7 +159,7 @@ class WireServer:
 
   def list_accounts(self):
     with self.USER_LOCK:
-      if not self.USERS:
+      if len(self.USERS) == 0:
         return self.payload(Operations.FAILURE, "")
       else:
         accounts = self.USERS.keys()
