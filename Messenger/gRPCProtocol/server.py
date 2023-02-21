@@ -37,12 +37,12 @@ class ChatService(chat_pb2_grpc.ChatServiceServicer):
     USER_LOCK = threading.Lock()
 
     USERS = {} # dictionary holding all user objects { key: username, value: user object}
-    ACTIVE_USERS = {} # holds currently logged in users { key: username, value: conn}
 
     def LoginClient(self, request, context):
         with self.USER_LOCK:
             if request.info in self.USERS:
-                self.ACTIVE_USERS[request.info] = request.info
+                if not self.USERS[request.info].logged_in:
+                    self.USERS[request.info].logged_in = True
                 return chat_pb2.ServerMessage(operation=chat_pb2.SUCCESS, info="")
         return chat_pb2.ServerMessage(operation=chat_pb2.FAILURE, info="")
 
@@ -52,14 +52,12 @@ class ChatService(chat_pb2_grpc.ChatServiceServicer):
                 return chat_pb2.ServerMessage(operation=chat_pb2.ACCOUNT_ALREADY_EXISTS, info="")
             new_user = User(request.info)
             self.USERS[request.info] = new_user
-            self.ACTIVE_USERS[request.info] = request.info
         return chat_pb2.ServerMessage(operation=chat_pb2.SUCCESS, info="")
 
     def DeleteAccountClient(self, request, context):
         with self.USER_LOCK:
-            if request.info in self.USERS and request.info in self.ACTIVE_USERS:
+            if request.info in self.USERS and self.USERS[request.info].logged_in:
                 del self.USERS[request.info]
-                del self.ACTIVE_USERS[request.info]
                 return chat_pb2.ServerMessage(operation=chat_pb2.SUCCESS, info="")
         return chat_pb2.ServerMessage(operation=chat_pb2.ACCOUNT_DOES_NOT_EXIST, info="")
 
@@ -75,8 +73,8 @@ class ChatService(chat_pb2_grpc.ChatServiceServicer):
     def SendMessageClient(self, request, context):
         sender, receiver, msg = request.info.split("\n")
         with self.USER_LOCK:
-            if receiver in self.USERS:
-                self.USERS[receiver].queue_message(msg)
+            if receiver in self.USERS and sender in self.USERS:
+                self.USERS[receiver].queue_message(msg, deliver_now=self.USERS[receiver].logged_in)
                 return chat_pb2.ServerMessage(operation=chat_pb2.SUCCESS, info="")
             else:
                 return chat_pb2.ServerMessage(operation=chat_pb2.FAILURE, info="")
@@ -90,10 +88,19 @@ class ChatService(chat_pb2_grpc.ChatServiceServicer):
 
     def LogoutClient(self, request, context):
         with self.USER_LOCK:
-            if request.info in self.ACTIVE_USERS:
-                del self.ACTIVE_USERS[request.info]
+            if request.info in self.USERS and self.USERS[request.info].logged_in:
+                self.USERS[request.info].logged_in = False
                 return chat_pb2.ServerMessage(operation=chat_pb2.SUCCESS, info="")
         return chat_pb2.ServerMessage(operation=chat_pb2.FAILURE, info="")
 
-    def QuitClient(self, request, context):
-        return chat_pb2.ServerMessage(operation=chat_pb2.QUIT_MESSENGER, info="")
+    def CheckIncomingMessagesClient(self, request, context):
+        if request.info in self.USERS:
+            if self.USERS[request.info].immediate_messages.empty():
+                return chat_pb2.ServerMessage(operation=chat_pb2.NO_MESSAGES, info="")
+            else:
+                messages = self.USERS[request.info].get_current_messages(deliver_now=True)
+                message_string = self.SEPARATE_CHARACTER.join(messages)
+                return chat_pb2.ServerMessage(operation=chat_pb2.MESSAGES_EXIST, info=message_string)
+        print("Failure finding user info")
+        return chat_pb2.ServerMessage(operation=chat_pb2.FAILURE, info="")
+        

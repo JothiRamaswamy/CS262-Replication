@@ -96,52 +96,37 @@ class Client:
         return 0
 
     def quit_messenger(self, stub: ChatServiceStub):
-        client_message = chat_pb2.ClientMessage(info="")
-        server_reply = stub.QuitClient(client_message)
-        print(server_reply)
+        self.RECEIVE_EVENT.clear()
         return
-    # todo: figure out how to quit gRPC
-    #   try:
-    #     self.send(Operations.SEND_MESSAGE, self.DISCONNECT_MESSAGE)
-    #     self.RECEIVE_EVENT.clear()
-    #     self.CLIENT.close()
-    #   except:
-    #     return
 
-    def receive_incoming_messages(self):
-        pass
-    # todo: figure this out w gRPC
-    #   try:
-    #     msg_length = self.CLIENT.recv(self.HEADER, socket.MSG_DONTWAIT)
-    #     if not len(msg_length):
-    #       print("[DISCONNECTED] You have been disconnected from the server. (Press Ctrl-C to Exit)")
-    #       self.RECEIVE_EVENT.clear()
-    #       self.CLIENT.close()
-    #       return
-    #     elif int(msg_length.decode(self.FORMAT)):
-    #       length = int(msg_length.decode(self.FORMAT))
-    #       deserialized_data = deserialize(self.CLIENT.recv(length))
-    #       if deserialized_data["operation"] == Operations.RECEIVE_CURRENT_MESSAGE:
-    #         return deserialized_data
-    #   except BlockingIOError:
-    #     pass
-    #   except Exception as e:
-    #     logging.exception(e)
 
-    def poll_incoming_messages(self, event):
-        pass
-    # todo: figure this out w gRPC
-    #   while event.is_set():
-    #     try:
-    #       with self.CLIENT_LOCK:
-    #         if self.SESSION_INFO["background_listen"]:
-    #           message = self.receive_incoming_messages()
-    #           if message:
-    #             print("\r[INCOMING MESSAGE]{}".format(message["info"]))
-    #       time.sleep(1)
-    #     except Exception as e:
-    #       logging.exception(e)
-    #       break
+    def receive_incoming_messages(self, username, stub: ChatServiceStub):
+      try:
+        receive_info = stub.CheckIncomingMessagesClient(chat_pb2.ClientMessage(operation=chat_pb2.RECEIVE_CURRENT_MESSAGE, info=username))
+        if receive_info.operation == chat_pb2.MESSAGES_EXIST:
+            for message in receive_info.info.split("\n"):
+                print("\r" + message)
+      except KeyboardInterrupt:
+        return -1
+      except Exception as e:
+        logging.exception(e)
+
+    def poll_incoming_messages(self, event, stub: ChatServiceStub):
+      while event.is_set():
+        if self.SESSION_INFO["username"] == "":
+            continue
+        try:
+          with self.CLIENT_LOCK:
+            if self.SESSION_INFO["background_listen"]:
+              message = self.receive_incoming_messages(self.SESSION_INFO["username"], stub)
+              if message:
+                if message == -1:
+                  break
+                print("\r[INCOMING MESSAGE]{}".format(message["info"]))
+          time.sleep(1)
+        except Exception as e:
+          logging.exception(e)
+          break
 
     def get_login_input(self, stub: ChatServiceStub):
       received_list = self.list_accounts(stub)
@@ -155,9 +140,7 @@ class Client:
         input("Press enter to return to the main menu.\n\n")
         return 1
 
-    def background_listener(self):
-        pass
-    # todo: figure this out w gRPC
-    #   self.RECEIVE_EVENT.set()
-    #   background_thread = threading.Thread(target=self.poll_incoming_messages, args=(self.RECEIVE_EVENT,))
-    #   background_thread.start()
+    def background_listener(self, stub: ChatServiceStub):
+      self.RECEIVE_EVENT.set()
+      background_thread = threading.Thread(target=self.poll_incoming_messages, args=(self.RECEIVE_EVENT,stub))
+      background_thread.start()

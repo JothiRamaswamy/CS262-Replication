@@ -14,6 +14,8 @@ LIST_OF_ACCOUNTS: ServerOperation
 LIST_OF_MESSAGES: ServerOperation
 LOGIN: ClientOperation
 LOGOUT: ClientOperation
+MESSAGES_EXIST: ServerOperation
+NO_MESSAGES: ServerOperation
 QUIT_MESSENGER: ClientOperation
 RECEIVE_CURRENT_MESSAGE: ClientOperation
 SEND_MESSAGE: ClientOperation

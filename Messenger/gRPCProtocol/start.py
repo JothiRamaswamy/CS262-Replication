@@ -1,7 +1,6 @@
 import curses
 import fnmatch
 import sys
-import chat_pb2
 from chat_pb2_grpc import ChatServiceStub
 from client import Client
 from server import ChatService
@@ -29,6 +28,8 @@ def load_user_menu(this_client: Client, stub: ChatServiceStub):
     print("\nInput a message and press enter to share with " + receiver + " or EXIT to end the chat.\n")
     while True:
       message = wrap_input(this_client, "")
+      if not message:
+          return
       processed_message = "<" + this_client.SESSION_INFO["username"] + ">" + message 
       if message == "EXIT":
         print(f"\n[ENDING CHAT] Ending chat with {receiver}\n")
@@ -64,7 +65,7 @@ def start(this_client: Client, stub: ChatServiceStub):
   try:
     name = wrap_menu(this_client, menu, actions, message)
   except KeyboardInterrupt:
-    return this_client.quit_messenger()
+    return this_client.quit_messenger(stub)
 
   if name == "Quit Messenger" or name == 0:
     return this_client.quit_messenger(stub)
@@ -74,6 +75,9 @@ def start(this_client: Client, stub: ChatServiceStub):
     status = 1
     while status == 1:
       account_name = wrap_input(this_client, "Username: ")
+
+      if not account_name:
+          return
 
       if account_name == "EXIT":
         return start(this_client, stub)
@@ -92,7 +96,7 @@ def start(this_client: Client, stub: ChatServiceStub):
         else:
             return start(this_client, stub)
     except KeyboardInterrupt:
-        return this_client.quit_messenger()
+        return this_client.quit_messenger(stub)
 
   elif name == "List accounts":
     decoded_data = this_client.list_accounts(stub)
@@ -100,6 +104,8 @@ def start(this_client: Client, stub: ChatServiceStub):
       accounts = decoded_data.info.split("\n")
       print("\nPlease input a text wildcard. * matches everything, ? matches any single character, [seq] matches any character in seq, and [!seq] matches any character not in seq.\n")
       wildcard = wrap_input(this_client, "Text wildcard: ")
+      if not wildcard:
+          return
       print("\nList of accounts currently on the server matching " + wildcard + ":\n")
       for account in accounts:
         if fnmatch.fnmatch(account, wildcard):
@@ -115,13 +121,13 @@ def wrap_menu(this_client, menu, actions, message):
     try:
         return curses.wrapper(menu, actions, message)
     except KeyboardInterrupt:
-        return this_client.quit_messenger()
+        return this_client.quit_messenger(stub)
 
 def wrap_input(this_client, string):
     try:
         return input(string)
     except KeyboardInterrupt:
-        return this_client.quit_messenger()
+        return this_client.quit_messenger(stub)
 
 
 if __name__ == "__main__":
@@ -135,6 +141,7 @@ if __name__ == "__main__":
     with grpc.insecure_channel(SERVER_HOST) as channel: # channel to connect grpc, make calls
       stub = chat_pb2_grpc.ChatServiceStub(channel)
       client = Client()
+      client.background_listener(stub)
 
       start(client, stub)
 

@@ -9,6 +9,8 @@ enum ServerOperation {
     ACCOUNT_DOES_NOT_EXIST = 3;
     LIST_OF_ACCOUNTS = 4;
     LIST_OF_MESSAGES = 5;
+    NO_MESSAGES = 6;
+    MESSAGES_EXIST = 7;
 }
 
 enum ClientOperation {
@@ -25,12 +27,12 @@ enum ClientOperation {
 }
 
 message ClientMessage {
-    string operation = 1;
+    ClientOperation operation = 1;
     string info = 2;
   }
 
 message ServerMessage {
-    string operation = 1;
+    ServerOperation operation = 1;
     string info = 2;
 }
 
@@ -43,6 +45,6 @@ service ChatService {
     rpc SendMessageClient (ClientMessage) returns (ServerMessage) {}
     rpc ViewMessageClient (ClientMessage) returns (ServerMessage) {}
     rpc LogoutClient (ClientMessage) returns (ServerMessage) {}
-    rpc QuitClient (ClientMessage) returns (ServerMessage) {}
+    rpc CheckIncomingMessagesClient (ClientMessage) returns (ServerMessage) {}
 
 }

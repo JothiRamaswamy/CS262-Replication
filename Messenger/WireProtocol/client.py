@@ -16,7 +16,7 @@ class WireClient:
     FORMAT = "utf-8"
     DISCONNECT_MESSAGE = "!DISCONNECT"
     SERVER_NAME = socket.gethostname() # gets name representing computer on the network
-    SERVER = socket.gethostbyname(SERVER_NAME) # gets host IPv4 address
+    SERVER = "10.250.39.196" # gets host IPv4 address
     ADDR = (SERVER, PORT)
     SESSION_INFO = {"username": "", "background_listen": True}
     CLIENT_LOCK = threading.Lock()

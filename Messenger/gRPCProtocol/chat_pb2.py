@@ -13,7 +13,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\nchat.proto\"B\n\rClientMessage\x12#\n\toperation\x18\x01 \x01(\x0e\x32\x10.ClientOperation\x12\x0c\n\x04info\x18\x02 \x01(\t\"B\n\rServerMessage\x12#\n\toperation\x18\x01 \x01(\x0e\x32\x10.ServerOperation\x12\x0c\n\x04info\x18\x02 \x01(\t*\x8f\x01\n\x0fServerOperation\x12\x0b\n\x07SUCCESS\x10\x00\x12\x0b\n\x07\x46\x41ILURE\x10\x01\x12\x1a\n\x16\x41\x43\x43OUNT_ALREADY_EXISTS\x10\x02\x12\x1a\n\x16\x41\x43\x43OUNT_DOES_NOT_EXIST\x10\x03\x12\x14\n\x10LIST_OF_ACCOUNTS\x10\x04\x12\x14\n\x10LIST_OF_MESSAGES\x10\x05*\xc5\x01\n\x0f\x43lientOperation\x12\t\n\x05LOGIN\x10\x00\x12\x12\n\x0e\x43REATE_ACCOUNT\x10\x01\x12\x12\n\x0e\x44\x45LETE_ACCOUNT\x10\x02\x12\x11\n\rLIST_ACCOUNTS\x10\x03\x12\x10\n\x0cSEND_MESSAGE\x10\x04\x12\x1d\n\x19VIEW_UNDELIVERED_MESSAGES\x10\x05\x12\n\n\x06LOGOUT\x10\x06\x12\x12\n\x0eQUIT_MESSENGER\x10\x07\x12\x1b\n\x17RECEIVE_CURRENT_MESSAGE\x10\x08\x32\xb7\x03\n\x0b\x43hatService\x12/\n\x0bLoginClient\x12\x0e.ClientMessage\x1a\x0e.ServerMessage\"\x00\x12\x37\n\x13\x43reateAccountClient\x12\x0e.ClientMessage\x1a\x0e.ServerMessage\"\x00\x12\x37\n\x13\x44\x65leteAccountClient\x12\x0e.ClientMessage\x1a\x0e.ServerMessage\"\x00\x12\x35\n\x11ListAccountClient\x12\x0e.ClientMessage\x1a\x0e.ServerMessage\"\x00\x12\x35\n\x11SendMessageClient\x12\x0e.ClientMessage\x1a\x0e.ServerMessage\"\x00\x12\x35\n\x11ViewMessageClient\x12\x0e.ClientMessage\x1a\x0e.ServerMessage\"\x00\x12\x30\n\x0cLogoutClient\x12\x0e.ClientMessage\x1a\x0e.ServerMessage\"\x00\x12.\n\nQuitClient\x12\x0e.ClientMessage\x1a\x0e.ServerMessage\"\x00\x62\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\nchat.proto\"B\n\rClientMessage\x12#\n\toperation\x18\x01 \x01(\x0e\x32\x10.ClientOperation\x12\x0c\n\x04info\x18\x02 \x01(\t\"B\n\rServerMessage\x12#\n\toperation\x18\x01 \x01(\x0e\x32\x10.ServerOperation\x12\x0c\n\x04info\x18\x02 \x01(\t*\xb4\x01\n\x0fServerOperation\x12\x0b\n\x07SUCCESS\x10\x00\x12\x0b\n\x07\x46\x41ILURE\x10\x01\x12\x1a\n\x16\x41\x43\x43OUNT_ALREADY_EXISTS\x10\x02\x12\x1a\n\x16\x41\x43\x43OUNT_DOES_NOT_EXIST\x10\x03\x12\x14\n\x10LIST_OF_ACCOUNTS\x10\x04\x12\x14\n\x10LIST_OF_MESSAGES\x10\x05\x12\x0f\n\x0bNO_MESSAGES\x10\x06\x12\x12\n\x0eMESSAGES_EXIST\x10\x07*\xc5\x01\n\x0f\x43lientOperation\x12\t\n\x05LOGIN\x10\x00\x12\x12\n\x0e\x43REATE_ACCOUNT\x10\x01\x12\x12\n\x0e\x44\x45LETE_ACCOUNT\x10\x02\x12\x11\n\rLIST_ACCOUNTS\x10\x03\x12\x10\n\x0cSEND_MESSAGE\x10\x04\x12\x1d\n\x19VIEW_UNDELIVERED_MESSAGES\x10\x05\x12\n\n\x06LOGOUT\x10\x06\x12\x12\n\x0eQUIT_MESSENGER\x10\x07\x12\x1b\n\x17RECEIVE_CURRENT_MESSAGE\x10\x08\x32\xc8\x03\n\x0b\x43hatService\x12/\n\x0bLoginClient\x12\x0e.ClientMessage\x1a\x0e.ServerMessage\"\x00\x12\x37\n\x13\x43reateAccountClient\x12\x0e.ClientMessage\x1a\x0e.ServerMessage\"\x00\x12\x37\n\x13\x44\x65leteAccountClient\x12\x0e.ClientMessage\x1a\x0e.ServerMessage\"\x00\x12\x35\n\x11ListAccountClient\x12\x0e.ClientMessage\x1a\x0e.ServerMessage\"\x00\x12\x35\n\x11SendMessageClient\x12\x0e.ClientMessage\x1a\x0e.ServerMessage\"\x00\x12\x35\n\x11ViewMessageClient\x12\x0e.ClientMessage\x1a\x0e.ServerMessage\"\x00\x12\x30\n\x0cLogoutClient\x12\x0e.ClientMessage\x1a\x0e.ServerMessage\"\x00\x12?\n\x1b\x43heckIncomingMessagesClient\x12\x0e.ClientMessage\x1a\x0e.ServerMessage\"\x00\x62\x06proto3')
 
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, globals())
 _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'chat_pb2', globals())
@@ -21,13 +21,13 @@ if _descriptor._USE_C_DESCRIPTORS == False:
 
   DESCRIPTOR._options = None
   _SERVEROPERATION._serialized_start=151
-  _SERVEROPERATION._serialized_end=294
-  _CLIENTOPERATION._serialized_start=297
-  _CLIENTOPERATION._serialized_end=494
+  _SERVEROPERATION._serialized_end=331
+  _CLIENTOPERATION._serialized_start=334
+  _CLIENTOPERATION._serialized_end=531
   _CLIENTMESSAGE._serialized_start=14
   _CLIENTMESSAGE._serialized_end=80
   _SERVERMESSAGE._serialized_start=82
   _SERVERMESSAGE._serialized_end=148
-  _CHATSERVICE._serialized_start=497
-  _CHATSERVICE._serialized_end=936
+  _CHATSERVICE._serialized_start=534
+  _CHATSERVICE._serialized_end=990
 # @@protoc_insertion_point(module_scope)

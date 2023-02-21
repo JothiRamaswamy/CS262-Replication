@@ -49,8 +49,8 @@ class ChatServiceStub(object):
                 request_serializer=chat__pb2.ClientMessage.SerializeToString,
                 response_deserializer=chat__pb2.ServerMessage.FromString,
                 )
-        self.QuitClient = channel.unary_unary(
-                '/ChatService/QuitClient',
+        self.CheckIncomingMessagesClient = channel.unary_unary(
+                '/ChatService/CheckIncomingMessagesClient',
                 request_serializer=chat__pb2.ClientMessage.SerializeToString,
                 response_deserializer=chat__pb2.ServerMessage.FromString,
                 )
@@ -101,7 +101,7 @@ class ChatServiceServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def QuitClient(self, request, context):
+    def CheckIncomingMessagesClient(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -145,8 +145,8 @@ def add_ChatServiceServicer_to_server(servicer, server):
                     request_deserializer=chat__pb2.ClientMessage.FromString,
                     response_serializer=chat__pb2.ServerMessage.SerializeToString,
             ),
-            'QuitClient': grpc.unary_unary_rpc_method_handler(
-                    servicer.QuitClient,
+            'CheckIncomingMessagesClient': grpc.unary_unary_rpc_method_handler(
+                    servicer.CheckIncomingMessagesClient,
                     request_deserializer=chat__pb2.ClientMessage.FromString,
                     response_serializer=chat__pb2.ServerMessage.SerializeToString,
             ),
@@ -280,7 +280,7 @@ class ChatService(object):
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
-    def QuitClient(request,
+    def CheckIncomingMessagesClient(request,
             target,
             options=(),
             channel_credentials=None,
@@ -290,7 +290,7 @@ class ChatService(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/ChatService/QuitClient',
+        return grpc.experimental.unary_unary(request, target, '/ChatService/CheckIncomingMessagesClient',
             chat__pb2.ClientMessage.SerializeToString,
             chat__pb2.ServerMessage.FromString,
             options, channel_credentials,
