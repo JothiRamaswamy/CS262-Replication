@@ -94,7 +94,7 @@ def start(this_client):
 
   elif name == "List accounts":
     decoded_data = this_client.list_accounts()
-    if decoded_data["operation"] == Operations.SUCCESS:
+    if decoded_data != 1 and decoded_data["operation"] == Operations.SUCCESS:
       accounts = decoded_data["info"].split("\n")
       print("\nPlease input a text wildcard. * matches everything, ? matches any single character, [seq] matches any character in seq, and [!seq] matches any character not in seq.\n")
       wildcard = wrap_input("Text wildcard: ")
