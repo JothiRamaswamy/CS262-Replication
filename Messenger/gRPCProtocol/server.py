@@ -76,9 +76,8 @@ class ChatService(chat_pb2_grpc.ChatServiceServicer):
         sender, receiver, msg = request.info.split("\n")
         with self.USER_LOCK:
             if receiver in self.USERS:
-                if receiver not in self.ACTIVE_USERS:
-                    self.USERS[receiver].queue_message(msg)
-                    return chat_pb2.ServerMessage(operation=chat_pb2.SUCCESS, info="")
+                self.USERS[receiver].queue_message(msg)
+                return chat_pb2.ServerMessage(operation=chat_pb2.SUCCESS, info="")
             else:
                 return chat_pb2.ServerMessage(operation=chat_pb2.FAILURE, info="")
 

@@ -90,10 +90,9 @@ class Client:
             print("\n" + self.SESSION_INFO["username"] + "'s account does not have any unread messages.")
             return 1
         messages = received_info.info.split("\n")
-        # todo: do the commented stuff below but in start.py
-        # print("\nList of " + self.SESSION_INFO["username"] + "'s messages:\n")
-        # for j, message in enumerate(messages):
-        #     print(str(j + 1) + ". " + str(message))
+        print("\nList of " + self.SESSION_INFO["username"] + "'s messages:\n")
+        for j, message in enumerate(messages):
+            print(str(j + 1) + ". " + str(message))
         return 0
 
     def quit_messenger(self, stub: ChatServiceStub):

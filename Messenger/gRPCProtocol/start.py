@@ -16,7 +16,7 @@ def load_user_menu(this_client: Client, stub: ChatServiceStub):
 
   actions = ["Send messages", "View my messages", "Logout", "Delete account"]
   message = "\n" + this_client.SESSION_INFO["username"] + "'s Account\n\n"
-  user_choice = wrap_menu(menu, actions, message)
+  user_choice = wrap_menu(this_client, menu, actions, message)
 
   if user_choice == "Send messages":
 
@@ -24,11 +24,11 @@ def load_user_menu(this_client: Client, stub: ChatServiceStub):
     accounts = decoded_data.info.split("\n")
     message = "\nWho would you like to send messages to?\n\n"
 
-    receiver = wrap_menu(menu, accounts, message)
+    receiver = wrap_menu(this_client, menu, accounts, message)
 
     print("\nInput a message and press enter to share with " + receiver + " or EXIT to end the chat.\n")
     while True:
-      message = wrap_input("")
+      message = wrap_input(this_client, "")
       processed_message = "<" + this_client.SESSION_INFO["username"] + ">" + message 
       if message == "EXIT":
         print(f"\n[ENDING CHAT] Ending chat with {receiver}\n")
@@ -39,7 +39,7 @@ def load_user_menu(this_client: Client, stub: ChatServiceStub):
 
   elif user_choice == "View my messages":
     this_client.view_msgs(this_client.SESSION_INFO["username"], stub)
-    wrap_input("\nPress enter to return to the main menu.\n\n")
+    wrap_input(this_client, "\nPress enter to return to the main menu.\n\n")
     load_user_menu(this_client, stub)
   elif user_choice == "Logout":
     this_client.logout(this_client.SESSION_INFO["username"], stub)
@@ -49,7 +49,7 @@ def load_user_menu(this_client: Client, stub: ChatServiceStub):
 
     actions = ["Go back", "Delete forever"]
     message = "\nAre you sure you would like to delete this account? Any unread messages will be permanently lost.\n\n"
-    choice = wrap_menu(menu, actions, message)
+    choice = wrap_menu(this_client, menu, actions, message)
 
     if choice == "Delete forever":
       this_client.delete_account(this_client.SESSION_INFO["username"], stub)
@@ -62,7 +62,7 @@ def start(this_client: Client, stub: ChatServiceStub):
   actions = ["Login", "Create account", "List accounts", "Quit Messenger"]
   message = "\nWelcome to Messenger! What would you like to do?\n\n"
   try:
-    name = wrap_menu(menu, actions, message)
+    name = wrap_menu(this_client, menu, actions, message)
   except KeyboardInterrupt:
     return this_client.quit_messenger()
 
@@ -73,10 +73,10 @@ def start(this_client: Client, stub: ChatServiceStub):
     print("\nWelcome to messenger! Please input a username to join or EXIT to exit.\n")
     status = 1
     while status == 1:
-      account_name = wrap_input("Username: ")
+      account_name = wrap_input(this_client, "Username: ")
 
       if account_name == "EXIT":
-        return start(stub)
+        return start(this_client, stub)
 
       if len(account_name) > 10:
         print("\nUsernames must be at most 10 characters.\n")
@@ -99,25 +99,25 @@ def start(this_client: Client, stub: ChatServiceStub):
     if decoded_data != 1:
       accounts = decoded_data.info.split("\n")
       print("\nPlease input a text wildcard. * matches everything, ? matches any single character, [seq] matches any character in seq, and [!seq] matches any character not in seq.\n")
-      wildcard = wrap_input("Text wildcard: ")
+      wildcard = wrap_input(this_client, "Text wildcard: ")
       print("\nList of accounts currently on the server matching " + wildcard + ":\n")
       for account in accounts:
         if fnmatch.fnmatch(account, wildcard):
           print(str(account))
-      wrap_input("\nPress enter to return to the main menu.\n\n")
+      wrap_input(this_client, "\nPress enter to return to the main menu.\n\n")
     else:
       print("\nThere are currently no accounts on the server.\n")
-      wrap_input("Press enter to return to the main menu.\n\n")
+      wrap_input(this_client, "Press enter to return to the main menu.\n\n")
     
     return start(this_client, stub)
 
-def wrap_menu(menu, actions, message):
+def wrap_menu(this_client, menu, actions, message):
     try:
         return curses.wrapper(menu, actions, message)
     except KeyboardInterrupt:
         return this_client.quit_messenger()
 
-def wrap_input(string):
+def wrap_input(this_client, string):
     try:
         return input(string)
     except KeyboardInterrupt:
