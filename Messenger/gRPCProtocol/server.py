@@ -39,14 +39,38 @@ class ChatService(chat_pb2_grpc.ChatServiceServicer):
     USERS = {} # dictionary holding all user objects { key: username, value: user object}
 
     def LoginClient(self, request, context):
+        return self.login_processing(request)
+
+    def CreateAccountClient(self, request, context):
+        return self.create_account_processing(request)
+
+    def DeleteAccountClient(self, request, context):
+        return self.delete_account_processing(request)
+
+    def ListAccountClient(self, request, context):
+        return self.list_account_processing(request)
+
+    def SendMessageClient(self, request, context):
+        return self.send_msg_processing(request)
+
+    def ViewMessageClient(self, request, context):
+        return self.view_msg_processing(request)
+
+    def LogoutClient(self, request, context):
+        return self.logout_processing(request)
+
+    def CheckIncomingMessagesClient(self, request, context):
+        return self.check_msg_processing(request)
+
+    def login_processing(self, request):
         with self.USER_LOCK:
             if request.info in self.USERS:
                 if not self.USERS[request.info].logged_in:
                     self.USERS[request.info].logged_in = True
                 return chat_pb2.ServerMessage(operation=chat_pb2.SUCCESS, info="")
-        return chat_pb2.ServerMessage(operation=chat_pb2.FAILURE, info="")
+        return chat_pb2.ServerMessage(operation=chat_pb2.ACCOUNT_DOES_NOT_EXIST, info="")
 
-    def CreateAccountClient(self, request, context):
+    def create_account_processing(self, request):
         with self.USER_LOCK:
             if request.info in self.USERS:
                 return chat_pb2.ServerMessage(operation=chat_pb2.ACCOUNT_ALREADY_EXISTS, info="")
@@ -54,14 +78,14 @@ class ChatService(chat_pb2_grpc.ChatServiceServicer):
             self.USERS[request.info] = new_user
         return chat_pb2.ServerMessage(operation=chat_pb2.SUCCESS, info="")
 
-    def DeleteAccountClient(self, request, context):
+    def delete_account_processing(self, request):
         with self.USER_LOCK:
             if request.info in self.USERS and self.USERS[request.info].logged_in:
                 del self.USERS[request.info]
                 return chat_pb2.ServerMessage(operation=chat_pb2.SUCCESS, info="")
         return chat_pb2.ServerMessage(operation=chat_pb2.ACCOUNT_DOES_NOT_EXIST, info="")
 
-    def ListAccountClient(self, request, context):
+    def list_account_processing(self, request):
         with self.USER_LOCK:
             if not self.USERS:
                 return chat_pb2.ServerMessage(operation=chat_pb2.FAILURE, info="")
@@ -69,8 +93,8 @@ class ChatService(chat_pb2_grpc.ChatServiceServicer):
                 accounts = self.USERS.keys()
                 accounts_string = "\n".join(accounts)
                 return chat_pb2.ServerMessage(operation=chat_pb2.SUCCESS, info=accounts_string)
-    
-    def SendMessageClient(self, request, context):
+
+    def send_msg_processing(self, request):
         sender, receiver, msg = request.info.split("\n")
         with self.USER_LOCK:
             if receiver in self.USERS and sender in self.USERS:
@@ -79,21 +103,23 @@ class ChatService(chat_pb2_grpc.ChatServiceServicer):
             else:
                 return chat_pb2.ServerMessage(operation=chat_pb2.FAILURE, info="")
 
-    def ViewMessageClient(self, request, context):
+    def view_msg_processing(self, request):
         with self.USER_LOCK:
-            if not self.USERS[request.info].undelivered_messages: # handle case of no undelivered messages
-                return chat_pb2.ServerMessage(operation=chat_pb2.FAILURE, info="")
-            messages = self.SEPARATE_CHARACTER.join(self.USERS[request.info].get_current_messages())
-        return chat_pb2.ServerMessage(operation=chat_pb2.SUCCESS, info=messages)
+            if request.info in self.USERS:
+                if self.USERS[request.info].undelivered_messages.empty(): # handle case of no undelivered messages
+                    return chat_pb2.ServerMessage(operation=chat_pb2.NO_MESSAGES, info="")
+                messages = self.SEPARATE_CHARACTER.join(self.USERS[request.info].get_current_messages())
+                return chat_pb2.ServerMessage(operation=chat_pb2.MESSAGES_EXIST, info=messages)
+            return chat_pb2.ServerMessage(operation=chat_pb2.FAILURE, info="")
 
-    def LogoutClient(self, request, context):
+    def logout_processing(self, request):
         with self.USER_LOCK:
             if request.info in self.USERS and self.USERS[request.info].logged_in:
                 self.USERS[request.info].logged_in = False
                 return chat_pb2.ServerMessage(operation=chat_pb2.SUCCESS, info="")
         return chat_pb2.ServerMessage(operation=chat_pb2.FAILURE, info="")
 
-    def CheckIncomingMessagesClient(self, request, context):
+    def check_msg_processing(self, request):
         if request.info in self.USERS:
             if self.USERS[request.info].immediate_messages.empty():
                 return chat_pb2.ServerMessage(operation=chat_pb2.NO_MESSAGES, info="")
