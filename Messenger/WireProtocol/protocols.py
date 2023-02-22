@@ -1,12 +1,12 @@
 FORMAT = "utf-8"
 
-def serialize(data):
+def serialize(data): # serialization function, encodes data into data string
   data_string = data["version"].encode(FORMAT)
   data_string += data["operation"].encode(FORMAT)
   data_string += data["info"].encode(FORMAT)
   return data_string
 
-def deserialize(data):
+def deserialize(data): # deserialization function, decodes data into dictionary
   data = data.decode()
   decoded_data = {}
   decoded_data["version"] = data[0]
