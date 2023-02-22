@@ -45,7 +45,7 @@ def load_user_menu(this_client):
       print("\nInput a message and press enter to share with " + receiver + " or EXIT to end the chat.\n")
       while True: # loop allows users to send messages until done
         message = wrap_input("")
-        processed_message = "<NEW MESSAGE FROM " + this_client.SESSION_INFO["username"] + "> " + message
+        processed_message = "<MESSAGE FROM " + this_client.SESSION_INFO["username"] + "> " + message
         if message == "EXIT": # if the user opts to exit, print a message and break from the loop, leaving the chat
           print(f"\n[ENDING CHAT] Ending chat with {receiver}\n")
           break

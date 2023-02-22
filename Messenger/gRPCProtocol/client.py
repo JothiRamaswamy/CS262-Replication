@@ -269,7 +269,7 @@ class Client:
         - 0 if message viewing is successful, 1 otherwise
         """
         # if the server request status is FAILURE, print out that there are no unread msgs and return 1
-        if received_info.operation == chat_pb2.FAILURE:
+        if received_info.operation == chat_pb2.NO_MESSAGES:
             print("\n" + self.SESSION_INFO["username"] + "'s account does not have any unread messages.")
             return 1
         # otherwise print out the unread messages in a numbered list, split by the enter character
@@ -308,7 +308,7 @@ class Client:
             # if messages exist, print them
             if receive_info.operation == chat_pb2.MESSAGES_EXIST:
                 for message in receive_info.info.split("\n"):
-                    print("\r" + message)
+                    print("\r\n" + message)
         except KeyboardInterrupt:
             # deal with Ctrl-C in the background thread
             return -1

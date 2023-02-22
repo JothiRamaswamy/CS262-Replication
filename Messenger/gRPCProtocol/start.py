@@ -46,7 +46,7 @@ def load_user_menu(this_client: Client, stub: ChatServiceStub):
       message = wrap_input(this_client, "")
       if not message:
           return
-      processed_message = "<" + this_client.SESSION_INFO["username"] + ">" + message 
+      processed_message = "<MESSAGE FROM " + this_client.SESSION_INFO["username"] + "> " + message
 
       # if the user opts to exit, print a message and break from the loop, leaving the chat
       if message == "EXIT":
