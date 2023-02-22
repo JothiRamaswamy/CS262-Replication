@@ -46,7 +46,14 @@ To run the gRPC version of the messenger system, start from the CS262 directory 
 ```
 cd messenger/grpcprotocol
 ```
-You should now be in the grpcprotocol directory in each terminal. Now, designate one of your terminals to be the server. In this terminal, type the following command:
+You should now be in the grpcprotocol directory in each terminal. Now, install gRPC with the following commands
+```
+pip3 install grpcio
+```
+```
+pip3 install grpcio-tools
+```
+Now, designate one of your terminals to be the server. In this terminal, type the following command:
 ```
 python3 start.py server
 ```
