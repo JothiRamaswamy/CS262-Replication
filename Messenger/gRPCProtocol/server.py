@@ -8,12 +8,12 @@ from user import User
 
 class ChatService(chat_pb2_grpc.ChatServiceServicer):
 
-    PORT = 5050 #port to connect to the server with
+    PORT = 5050 # port to connect to the server with
     SERVER_HOST = '10.250.35.25' # gets host IPv4 address
-    ADDR = (SERVER_HOST, PORT) #address that the server is listening into
-    SEPARATE_CHARACTER = "\n" #character to concat lists into strings with
+    ADDR = (SERVER_HOST, PORT) # address that the server is listening into
+    SEPARATE_CHARACTER = "\n" # character to concat lists into strings with
 
-    USER_LOCK = threading.Lock() #dealing with thread safety in functions accessing shared resources
+    USER_LOCK = threading.Lock() # dealing with thread safety in functions accessing shared resources
 
     USERS = {} # dictionary holding all user objects { key: username, value: user object}
 

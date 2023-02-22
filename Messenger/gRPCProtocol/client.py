@@ -13,16 +13,17 @@ import chat_pb2
 
 class Client:
 
-    PORT = 5050 #port to connect to the server with
+    PORT = 5050 # port to connect to the server with
     SERVER_NAME = socket.gethostname() # gets name representing computer on the network
     SERVER = socket.gethostbyname(SERVER_NAME) # gets host IPv4 address
-    ADDR = (SERVER, PORT) #address that the server is listening into
-    SESSION_INFO = {"username": ""} #store who is logged in at the moment
-    CLIENT_LOCK = threading.Lock() #dealing with thread safety in functions accessing shared resources
-    RECEIVE_EVENT = threading.Event() #event for controlling the background thread listening loop
+    ADDR = (SERVER, PORT) # address that the server is listening into
+    SESSION_INFO = {"username": ""} # store who is logged in at the moment
+    CLIENT_LOCK = threading.Lock() # dealing with thread safety in functions accessing shared resources
+    RECEIVE_EVENT = threading.Event() # event for controlling the background thread listening loop
 
     def login(self, username, stub: ChatServiceStub):
-        """Attempts to log in with the specified username.
+        """
+        Attempts to log in with the specified username.
 
         Args:
             username (str): The username to log in with.
@@ -38,7 +39,8 @@ class Client:
         return self.login_processing(username, received_info)
 
     def create_account(self, username, stub: ChatServiceStub):
-        """Attempts to create a new account with the specified username.
+        """
+        Attempts to create a new account with the specified username.
 
         Args:
             username (str): The username to create the account with.
@@ -54,7 +56,8 @@ class Client:
         return self.create_account_processing(username, received_info)
 
     def delete_account(self, username, stub: ChatServiceStub):
-        """Attempts to delete the account associated with the specified username.
+        """
+        Attempts to delete the account associated with the specified username.
 
         Args:
             username (str): The username to delete the account for.
@@ -69,7 +72,8 @@ class Client:
         return self.delete_account_processing(username, received_info)
     
     def logout(self, username, stub: ChatServiceStub):
-        """Attempts to log out of the account associated with the specified username.
+        """
+        Attempts to log out of the account associated with the specified username.
 
         Args:
             username (str): The username to log out of.
@@ -84,7 +88,8 @@ class Client:
         return self.logout_processing(username, received_info)
 
     def list_accounts(self, stub: ChatServiceStub):
-        """Attempts to list all of the accounts created in the chat server.
+        """
+        Attempts to list all of the accounts created in the chat server.
 
         Args:
             stub (ChatServiceStub): A gRPC stub for the chat server.
@@ -97,7 +102,8 @@ class Client:
         return self.list_account_processing(received_info)
 
     def send_message(self, sender, receiver, msg, stub: ChatServiceStub):
-        """Attempts to send a message from a sender account to a receiver account.
+        """
+        Attempts to send a message from a sender account to a receiver account.
 
         Args:
             sender (str): The username of the account sending the message.
@@ -115,7 +121,8 @@ class Client:
         return self.send_message_processing(received_info)
     
     def view_msgs(self, username, stub: ChatServiceStub):
-        """Attempts to retrieve all unread messages for the specified user.
+        """
+        Attempts to retrieve all unread messages for the specified user.
 
         Args:
             username (str): The username of the user whose messages will be retrieved.
