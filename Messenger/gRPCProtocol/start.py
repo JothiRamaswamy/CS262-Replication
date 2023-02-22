@@ -1,5 +1,6 @@
 import curses
 import fnmatch
+import os
 import sys
 from chat_pb2_grpc import ChatServiceStub
 from client import Client
@@ -20,6 +21,8 @@ def load_user_menu(this_client: Client, stub: ChatServiceStub):
   Returns:
       - None
   """
+  # Clear terminal for nicer interface dealing with inputs
+  os.system('clear')
 
   ### UI and Menu implementation
   # user menu, lets users pick from a set of actions once they are logged in
@@ -98,7 +101,9 @@ def start(this_client: Client, stub: ChatServiceStub):
   Returns:
       - None
   """
-
+  # Clear terminal for nicer interface dealing with inputs
+  os.system('clear')
+  
   ### UI and Menu implementation
   # start menu, lets user pick their first action before logging in/creating acct
   actions = ["Login", "Create account", "List accounts", "Quit Messenger"]
@@ -224,6 +229,7 @@ if __name__ == "__main__":
 # if the client is specified as what the user wants to start, connect grpc to server host, create
 # client, start background listener thread, and direct to start menu 
   elif sys.argv[1] == "client":
+    os.system('clear') # clear terminal on start for client
     with grpc.insecure_channel(SERVER_HOST) as channel: # channel to connect grpc, make calls
       stub = chat_pb2_grpc.ChatServiceStub(channel)
       client = Client()
