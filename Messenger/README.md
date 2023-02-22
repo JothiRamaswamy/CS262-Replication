@@ -46,7 +46,7 @@ To run the gRPC version of the messenger system, start from the CS262 directory 
 ```
 cd messenger/grpcprotocol
 ```
-You should now be in the grpcprotocol directory in each terminal. Now, install gRPC with the following commands
+You should now be in the grpcprotocol directory in each terminal. Now, install gRPC with the following commands:
 ```
 pip3 install grpcio
 ```
@@ -62,3 +62,25 @@ You should should see that the server has started on your machine. In your other
 python3 start.py client
 ```
 Congratulations! You have now set up Messenger on your machine. It is now possible to open more terminals and create more clients, which will all be able to access the server concurrently.
+
+Wire Protocol: Codebase Structure and Design
+
+The wire protocol version of Messenger contains the following Python files:
+
+- server.py
+- client.py
+- start.py
+- menu.py
+- operations.py
+- protocols.py
+- tests.py
+- user.py
+
+### server.py
+The server stores all of the current users of Messenger and processes client requests. The server is abstracted into a class called `WireServer` defined in this file which contains important methods such as `handle_client` which determines the nature of a user request and funnels that request to the correct helper function. Other methods such as `login`, `logout`, and `create_account` handle the server-side actions required to successfully complete this request from the perspective of the end user.
+
+### client.py
+The client program is what a user of Messenger is ultimately interacting with. The client is abstracted into a class called `WireClient` defined in this file which contains methods such as `login`, `create_account`, and `delete_account`. These methods, once called on the client-side, interact with their counterparts on the server-side through the use of sockets. This communication is made possible by the wire protocol, which determines how clients and the server are able to accurately interpret incoming messages.
+
+### start.py
+The `start.py` file is run from the terminal in order to initiate the client or the server. `start.py` imports `WireClient` and `WireServer` from `client.py` and `server.py` and creates objects from the class blueprints that are used within the Messenger application. `start.py` handles linking the client to the server (or vice versa) using sockets. Some client functions including `start` and `load_menu` are included in `start.py` in order to make the code more succint and callable immediately within `start.py` (as opposed to including them in `WireClient`, they instead take the client object as an argument).
