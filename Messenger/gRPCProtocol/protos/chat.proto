@@ -13,22 +13,8 @@ enum ServerOperation {
     MESSAGES_EXIST = 7;
 }
 
-enum ClientOperation {
-    LOGIN = 0;
-    CREATE_ACCOUNT = 1;
-    DELETE_ACCOUNT = 2;
-    LIST_ACCOUNTS = 3;
-    SEND_MESSAGE = 4;
-    VIEW_UNDELIVERED_MESSAGES = 5;
-    LOGOUT = 6;
-    QUIT_MESSENGER = 7;
-
-    RECEIVE_CURRENT_MESSAGE = 8;
-}
-
 message ClientMessage {
-    ClientOperation operation = 1;
-    string info = 2;
+    string info = 1;
   }
 
 message ServerMessage {

@@ -3,6 +3,9 @@
 import curses
 
 def menu(stdscr, classes, message):
+  """A method to create the curses menu UI for our chat service menus"""
+  
+  # visual design details for menu
   attributes = {}
   curses.init_pair(1, curses.COLOR_WHITE, curses.COLOR_BLACK)
   attributes['normal'] = curses.color_pair(1)
@@ -20,7 +23,6 @@ def menu(stdscr, classes, message):
         attr = attributes['highlighted']
       else:
         attr = attributes['normal']
-      #stdscr.addstr("{0}. ".format(i + 1))
       stdscr.addstr("{0}".format(" > "))
       stdscr.addstr(classes[i] + '\n', attr)
     c = stdscr.getch()
@@ -38,10 +40,3 @@ def menu(stdscr, classes, message):
         option += 1
 
   return classes[option]
-
-  #stdscr.addstr("You chose {0}".format(classes[option]))
-  #stdscr.getch()
-
-#option, name = curses.wrapper(menu, ["Login", "Create account", "List accounts", "Delete account"])
-
-#input("Type message: ")
