@@ -63,7 +63,7 @@ python3 start.py client
 ```
 Congratulations! You have now set up Messenger on your machine. It is now possible to open more terminals and create more clients, which will all be able to access the server concurrently.
 
-Wire Protocol: Codebase Structure and Design
+#Wire Protocol: Codebase Structure and Design
 
 The wire protocol version of Messenger contains the following Python files:
 
@@ -84,3 +84,18 @@ The client program is what a user of Messenger is ultimately interacting with. T
 
 ### start.py
 The `start.py` file is run from the terminal in order to initiate the client or the server. `start.py` imports `WireClient` and `WireServer` from `client.py` and `server.py` and creates objects from the class blueprints that are used within the Messenger application. `start.py` handles linking the client to the server (or vice versa) using sockets. Some client functions including `start` and `load_menu` are included in `start.py` in order to make the code more succint and callable immediately within `start.py` (as opposed to including them in `WireClient`, they instead take the client object as an argument).
+
+### menu.py
+The `menu.py` file defines how the user menu behaves using a library called `curses`.
+
+### operations.py
+The `operations.py` file defines the unqiue set of operations that will be used within the wire protocol and each an ID.
+
+### protocols.py
+The `protocols.py` file defines the `serialize` and `deserialize` functions used to encode messages into a string of bytes or decode a message into its version, operation, and message, which are returned in the form of a dictionary. The `serialize` function wire protocol is to create a data string including the version, operation, and message, in that order. `serialize` is used before a message is sent and `deserialize` is used on a message that was recently received.
+
+### tests.py
+The `tests.py` file includes a series of unit tests that confirm that many of the functions in the above files work correctly.
+
+### user.py
+The `user.py` file contains the `User` class, which is used by the client and server to keep track of users in the system.
