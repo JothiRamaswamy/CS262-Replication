@@ -102,9 +102,9 @@ To run the tests, first run the following lines of code:
 ```
 python3 -m venv env
 source ./env/bin/activate
-python -m pip install pytest
-python -m pip install grpcio
-python -m pip install grpcio-tools
+python3 -m pip install pytest
+python3 -m pip install grpcio
+python3 -m pip install grpcio-tools
 ```
 Now run
 ```
