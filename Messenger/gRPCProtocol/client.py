@@ -6,6 +6,7 @@ import curses
 import threading
 import time
 import grpc
+from chat_pb2 import ServerMessage
 
 from menu import menu
 
@@ -29,6 +30,34 @@ class Client:
 
     def login(self, username, stub: ChatServiceStub):
         received_info = stub.LoginClient(chat_pb2.ClientMessage(operation=chat_pb2.LOGIN, info=username))
+        return self.login_processing(username, received_info)
+
+    def create_account(self, username, stub: ChatServiceStub):
+        received_info = stub.CreateAccountClient(chat_pb2.ClientMessage(operation=chat_pb2.CREATE_ACCOUNT, info=username))
+        return self.create_account_processing(username, received_info)
+
+    def delete_account(self, username, stub: ChatServiceStub):
+        received_info = stub.DeleteAccountClient(chat_pb2.ClientMessage(operation=chat_pb2.DELETE_ACCOUNT, info=username))
+        return self.delete_account_processing(username, received_info)
+    
+    def logout(self, username, stub: ChatServiceStub):
+        received_info = stub.LogoutClient(chat_pb2.ClientMessage(operation=chat_pb2.LOGOUT, info=username))
+        return self.logout_processing(username, received_info)
+
+    def list_accounts(self, stub: ChatServiceStub):
+        received_info = stub.ListAccountClient(chat_pb2.ClientMessage(operation=chat_pb2.LIST_ACCOUNTS, info=""))
+        return self.list_account_processing(received_info)
+
+    def send_message(self, sender, receiver, msg, stub: ChatServiceStub):
+        total_info = sender + "\n" + receiver + "\n" + msg
+        received_info = stub.SendMessageClient(chat_pb2.ClientMessage(operation=chat_pb2.SEND_MESSAGE, info=total_info))
+        return self.send_message_processing(received_info)
+    
+    def view_msgs(self, username, stub: ChatServiceStub):
+        received_info = stub.ViewMessageClient(chat_pb2.ClientMessage(operation=chat_pb2.VIEW_UNDELIVERED_MESSAGES, info=username))
+        return self.view_message_processing(received_info)
+
+    def login_processing(self, username, received_info: ServerMessage):
         status = received_info.operation
         if status == chat_pb2.SUCCESS:
             self.SESSION_INFO["username"] = username
@@ -36,9 +65,10 @@ class Client:
         elif status == chat_pb2.ACCOUNT_DOES_NOT_EXIST:
             print("\nThe username you entered does not exist on the server. Please try again or input EXIT to exit.\n")
             return 1
+        else:
+            return None
 
-    def create_account(self, username, stub: ChatServiceStub):
-        received_info = stub.CreateAccountClient(chat_pb2.ClientMessage(operation=chat_pb2.CREATE_ACCOUNT, info=username))
+    def create_account_processing(self, username, received_info: ServerMessage):
         status = received_info.operation
         if status == chat_pb2.SUCCESS:
             self.SESSION_INFO["username"] = username
@@ -46,17 +76,15 @@ class Client:
         print("\nThe username you entered already exists on the server. Please try again or input EXIT to exit.\n")
         return 1
 
-    def delete_account(self, username, stub: ChatServiceStub):
-        received_info = stub.DeleteAccountClient(chat_pb2.ClientMessage(operation=chat_pb2.DELETE_ACCOUNT, info=username))
+    def delete_account_processing(self, username, received_info: ServerMessage):
         status = received_info.operation
         if status == chat_pb2.SUCCESS:
             self.SESSION_INFO["username"] = ""
             return 0
         print("Deletion failure")
         return 1
-    
-    def logout(self, username, stub: ChatServiceStub):
-        received_info = stub.LogoutClient(chat_pb2.ClientMessage(operation=chat_pb2.LOGOUT, info=username))
+
+    def logout_processing(self, username, received_info: ServerMessage):
         status = received_info.operation
         if status == chat_pb2.SUCCESS:
             self.SESSION_INFO["username"] = ""
@@ -64,17 +92,14 @@ class Client:
         print("Logout failure")
         return 1
 
-    def list_accounts(self, stub: ChatServiceStub):
-        received_info = stub.ListAccountClient(chat_pb2.ClientMessage(operation=chat_pb2.LIST_ACCOUNTS, info=""))
+    def list_account_processing(self, received_info: ServerMessage):
         status = received_info.operation
         if status == chat_pb2.SUCCESS:
             return received_info
         print("Account information does not exist")
         return 1
 
-    def send_message(self, sender, receiver, msg, stub: ChatServiceStub):
-        total_info = sender + "\n" + receiver + "\n" + msg
-        received_info = stub.SendMessageClient(chat_pb2.ClientMessage(operation=chat_pb2.SEND_MESSAGE, info=total_info))
+    def send_message_processing(self, received_info: ServerMessage):
         try:
             status = received_info.operation
             if status == chat_pb2.SUCCESS:
@@ -83,9 +108,8 @@ class Client:
             return 1
         except:
             return 1
-    
-    def view_msgs(self, username, stub: ChatServiceStub):
-        received_info = stub.ViewMessageClient(chat_pb2.ClientMessage(operation=chat_pb2.VIEW_UNDELIVERED_MESSAGES, info=username))
+
+    def view_message_processing(self, received_info: ServerMessage):
         if received_info.operation == chat_pb2.FAILURE:
             print("\n" + self.SESSION_INFO["username"] + "'s account does not have any unread messages.")
             return 1
