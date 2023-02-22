@@ -26,6 +26,14 @@ class WireClient:
     CLIENT = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
     def login(self, username):
+        """Attempts to log the user into the server with the given username.
+
+        Args:
+            username (str): The username to use for logging in.
+
+        Returns:
+            int: 0 if login was successful, 1 if the account does not exist.
+        """
         received_login_info = self.send(Operations.LOGIN, username)
         status = received_login_info["operation"]
         if status == Operations.SUCCESS:
@@ -36,6 +44,14 @@ class WireClient:
             return 1
 
     def create_account(self, username):
+        """Attempts to create a new account with the given username.
+
+        Args:
+            username (str): The username to use for the new account.
+
+        Returns:
+            int: 0 if account creation was successful, 1 if the account already exists.
+        """
         received_info = self.send(Operations.CREATE_ACCOUNT, username)
         status = received_info["operation"]
         if status == Operations.SUCCESS:
@@ -45,6 +61,14 @@ class WireClient:
         return 1
 
     def delete_account(self, username):
+      """Attempts to delete the account with the given username.
+
+      Args:
+          username (str): The username of the account to delete.
+
+      Returns:
+          int: 0 if account deletion was successful, 1 if deletion failed.
+      """
       received_info = self.send(Operations.DELETE_ACCOUNT, username)
       status = received_info["operation"]
       if status == Operations.SUCCESS:
@@ -54,6 +78,14 @@ class WireClient:
       return 1
     
     def logout(self, username):
+        """Logs out the user with the given username.
+
+        Args:
+            username (str): The username of the user to log out.
+
+        Returns:
+            int: 0 if logout was successful, 1 if logout failed.
+        """
         received_info = self.send(Operations.LOGOUT, username)
         status = received_info["operation"]
         if status == Operations.SUCCESS:
@@ -63,6 +95,12 @@ class WireClient:
         return 1
 
     def list_accounts(self):
+        """Requests a list of all the accounts on the server.
+
+        Returns:
+            a dictionary containing a list of accounts if the request was successful, 
+            1 if the request failed.
+        """
         received_info = self.send(Operations.LIST_ACCOUNTS, "")
         status = received_info["operation"]
         if status == Operations.SUCCESS:
@@ -70,6 +108,16 @@ class WireClient:
         return 1
 
     def send_message(self, sender, receiver, msg):
+        """Sends a message from the given sender to the given receiver.
+
+        Args:
+            sender (str): The username of the sender.
+            receiver (str): The username of the receiver.
+            msg (str): The message to send.
+
+        Returns:
+            int: 0 if message sending was successful, 1 if the receiving account does not exist.
+        """
         total_info = sender + "\n" + receiver + "\n" + msg
         received_info = self.send(Operations.SEND_MESSAGE, total_info)
         try:
@@ -82,6 +130,15 @@ class WireClient:
             return 1
     
     def view_msgs(self, username):
+        """
+        View all undelivered messages for the specified user.
+
+        Args:
+            username (str): the username of the recipient of the undelivered messages.
+
+        Returns:
+            int: 1 if there are no undelivered messages for the specified user, 0 otherwise.
+        """
         data = self.send(Operations.VIEW_UNDELIVERED_MESSAGES, username)
         if data["operation"] == Operations.FAILURE:
             print("\n" + self.SESSION_INFO["username"] + "'s account does not have any unread messages.")
@@ -93,6 +150,9 @@ class WireClient:
         return 0
 
     def quit_messenger(self):
+      """
+      Quit the messenger application by sending a disconnect message to the server and closing the connection.
+      """
       try:
         self.send(Operations.SEND_MESSAGE, self.DISCONNECT_MESSAGE)
         self.RECEIVE_EVENT.clear()
@@ -101,6 +161,12 @@ class WireClient:
         return
 
     def receive_incoming_messages(self):
+      """
+      Receive incoming messages from the server and return the deserialized message.
+
+      Returns:
+          None if there is no incoming message, a dictionary containing the deserialized message otherwise.
+      """
       try:
         msg_length = self.CLIENT.recv(self.HEADER, socket.MSG_DONTWAIT)
         if not len(msg_length):
@@ -119,6 +185,12 @@ class WireClient:
         logging.exception(e)
 
     def poll_incoming_messages(self, event):
+      """
+      Continuously poll for incoming messages from the server and print them to the console.
+
+      Args:
+          event (threading.Event): the event object that controls the execution of the thread.
+      """
       while event.is_set():
         try:
           with self.CLIENT_LOCK:
@@ -132,6 +204,16 @@ class WireClient:
           break
 
     def send(self, operation, msg):
+      """
+      Send a message to the server and receive the response.
+
+      Args:
+          operation (str): the operation to be performed.
+          msg (str): the message to be sent.
+
+      Returns:
+          None if there is no response from the server, a dictionary containing the deserialized response otherwise.
+      """
       serialized_message = serialize({"version": self.VERSION, "operation": operation, "info": msg})
       message_length = len(serialized_message)
       send_length = str(message_length).encode(self.FORMAT)
@@ -169,6 +251,12 @@ class WireClient:
           return
 
     def get_login_input(self):
+      """
+      Prompts the user to choose an account to login to.
+
+      Returns:
+          Returns self.login(username) if a user logs in successfully, otherwise returns 1 if there are no accounts on the server.
+      """
       received_list = self.list_accounts()
       if received_list != 1:
         accounts = received_list["info"].split("\n")
@@ -181,6 +269,9 @@ class WireClient:
         return 1
 
     def background_listener(self):
+      """
+      Starts a background thread that polls for incoming messages from the server.
+      """
       self.RECEIVE_EVENT.set()
       background_thread = threading.Thread(target=self.poll_incoming_messages, args=(self.RECEIVE_EVENT,))
       background_thread.start()
