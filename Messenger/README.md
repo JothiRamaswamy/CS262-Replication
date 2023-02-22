@@ -108,7 +108,7 @@ python3 -m pip install grpcio-tools
 ```
 Now run
 ```
-python3 tests.py
+pytest tests.py
 ```
 
 ### user.py
