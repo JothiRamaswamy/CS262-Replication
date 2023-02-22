@@ -97,6 +97,20 @@ The `protocols.py` file defines the `serialize` and `deserialize` functions used
 ### tests.py
 The `tests.py` file includes a series of unit tests that confirm that many of the functions in the above files work correctly.
 
+To run the tests, first run the following lines of code:
+
+```
+python3 -m venv env
+source ./env/bin/activate
+python -m pip install pytest
+python -m pip install grpcio
+python -m pip install grpcio-tools
+```
+Now run
+```
+python3 tests.py
+```
+
 ### user.py
 The `user.py` file contains the `User` class, which is used by the client and server to keep track of users in the system.
 
