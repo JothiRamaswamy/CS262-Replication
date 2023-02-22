@@ -10,7 +10,6 @@ from client import Client
 
 
 class ClientTests(TestCase):
-
     """Tests for the client side operations for this chat service"""
 
     username = "jothi"
@@ -122,7 +121,6 @@ class ClientTests(TestCase):
         self.assertEqual(result, 1)
 
 class ServerTests(TestCase):
-
     """Tests for the server side operations for this chat service"""
 
     username = "jothi"
@@ -219,7 +217,6 @@ class ServerTests(TestCase):
 
     def test_list_account_works(self):
         """Test that list account works in cases when it should."""
-        client_msg = ClientMessage(info=self.username)
         self.chat.USERS = {}
         new_user = User(self.username)
         self.chat.USERS[self.username] = new_user
@@ -242,7 +239,6 @@ class ServerTests(TestCase):
 
     def test_list_account_fails(self):
         """Test that list account fails in cases when it should."""
-        client_msg = ClientMessage(info=self.username)
         self.chat.USERS = {}
 
         # when no users exist, this should fail
@@ -372,4 +368,3 @@ class ServerTests(TestCase):
         # if the user is invalid, this should fail
         results = self.chat.check_msg_processing(client_msg)
         self.assertEqual(results.operation, chat_pb2.FAILURE)
-

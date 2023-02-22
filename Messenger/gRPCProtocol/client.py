@@ -13,10 +13,6 @@ import chat_pb2
 
 class Client:
 
-    PORT = 5050 # port to connect to the server with
-    SERVER_NAME = socket.gethostname() # gets name representing computer on the network
-    SERVER = socket.gethostbyname(SERVER_NAME) # gets host IPv4 address
-    ADDR = (SERVER, PORT) # address that the server is listening into
     SESSION_INFO = {"username": ""} # store who is logged in at the moment
     CLIENT_LOCK = threading.Lock() # dealing with thread safety in functions accessing shared resources
     RECEIVE_EVENT = threading.Event() # event for controlling the background thread listening loop
