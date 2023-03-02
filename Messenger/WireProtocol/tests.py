@@ -283,16 +283,22 @@ class ServerTests(TestCase):
         second_user = User(second_username)
         self.this_server.USERS[second_username] = second_user
 
+        # if all users are valid, this should succeed
         results = self.this_server.send_message(self.username, second_username, "should work")
         self.assertEqual(results["operation"], Operations.SUCCESS)
 
     def test_send_msgs_fails(self):
         """Test that send messages fails in cases when it should."""
         self.this_server.USERS = {}
+        second_username = "jsod"
+
+        # if no user is valid, this should fail
+        results = self.this_server.send_message(self.username, second_username, "should fail")
+        self.assertEqual(results["operation"], Operations.FAILURE)
+
         new_user = User(self.username)
         self.this_server.USERS[self.username] = new_user
 
-        second_username = "jsod"
-
-        results = self.this_server.send_message(self.username, second_username, "should fail")
-        self.assertEqual(results["operation"], Operations.FAILURE)
+        # if any user is invalid, this should fail
+        results2 = self.this_server.send_message(self.username, second_username, "should fail")
+        self.assertEqual(results2["operation"], Operations.FAILURE)

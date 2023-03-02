@@ -1,6 +1,8 @@
 import curses
 import fnmatch
+import os
 import sys
+
 from server import WireServer
 from operations import Operations
 from menu import menu
@@ -16,6 +18,8 @@ def load_user_menu(this_client):
 
   Returns: None
   """
+  # Clear terminal for nicer interface dealing with inputs
+  os.system('clear')
   ### UI and Menu implementation
   # user menu, lets users pick from a set of actions once they are logged in
   actions = ["Send messages", "View my messages", "Logout", "Delete account"]
@@ -90,6 +94,8 @@ def start(this_client):
 
   Returns: None
   """
+  # Clear terminal for nicer interface dealing with inputs
+  os.system('clear')
   ### UI and Menu implementation
   # start menu, lets user pick their first action before logging in/creating acct
   actions = ["Login", "Create account", "List accounts", "Quit Messenger"]
@@ -194,6 +200,7 @@ if __name__ == "__main__": # run the program
   if len(sys.argv) < 2:
     print("please specify running client or server")
   elif sys.argv[1] == "client": # runs the client application using sockets
+    os.system('clear') # clear terminal on start for client
     this_client = WireClient()
     this_client.CLIENT.connect(this_client.ADDR)
     this_client.background_listener()
