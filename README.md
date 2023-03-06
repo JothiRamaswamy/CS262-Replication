@@ -21,14 +21,14 @@ The first implementation of this system uses sockets and a wire protocol detaile
 Open up two terminals, and change the directory of each to the folder in which you'd like this repo to live. Then enter
 
 ```
-git clone https://github.com/JSOD11/CS262.git
+git clone https://github.com/JSOD11/CS262-Messenger.git
 ```
 
 # Wire Protocol Setup
 
 To run the wire protocol version of the messenger system, start from the CS262 directory you have cloned, then enter
 ```
-cd messenger/wireprotocol
+cd wireprotocol
 ```
 You should now be in the wireprotocol directory in each terminal. Now, designate one of your terminals to be the server. In this terminal, type the following command:
 ```
@@ -95,7 +95,7 @@ The `user.py` file contains the `User` class, which is used by the client and se
 
 To run the gRPC version of the messenger system, start from the CS262 directory you have cloned, then enter
 ```
-cd messenger/grpcprotocol
+cd grpcprotocol
 ```
 You should now be in the grpcprotocol directory in each terminal. Now, install gRPC with the following commands:
 ```
