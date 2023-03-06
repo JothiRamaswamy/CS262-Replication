@@ -1,6 +1,5 @@
 # inspired by grpc helloworld tutorial at https://github.com/grpc/grpc/tree/master/examples/python/helloworld
 import threading
-import socket
 import chat_pb2
 import chat_pb2_grpc
 from user import User
@@ -9,8 +8,8 @@ from user import User
 class ChatService(chat_pb2_grpc.ChatServiceServicer):
 
     PORT = 5050 # port to connect to the server with
-    
-    SERVER = '10.250.35.25' # replace with your own IPv4 address
+
+    SERVER = '10.250.69.0' # replace with your own IPv4 address
 
     ADDR = (SERVER, PORT) # address that the server is listening into
     SEPARATE_CHARACTER = "\n" # character to concat lists into strings with

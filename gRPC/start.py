@@ -221,7 +221,7 @@ def wrap_input(this_client, string):
 
 if __name__ == "__main__":
 
-  SERVER_HOST = "10.250.35.25:50051"
+  SERVER_HOST = "10.250.69.0:50051"
 
   if len(sys.argv) < 2:
     print("please specify running client or server")
