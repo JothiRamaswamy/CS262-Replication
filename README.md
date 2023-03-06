@@ -104,7 +104,17 @@ pip3 install grpcio
 ```
 pip3 install grpcio-tools
 ```
-Now, designate one of your terminals to be the server. In this terminal, type the following command:
+There are two small but essential modifications you will need to make to both `start.py` and `server.py` in order for this code to work. First, you will need to notice the IPv4 address that prints to the server console when you run the Wire Protocol server (mine is 10.250.69.0 — it should look something like this). First, head to `server.py`, where you will need to change the IPv4 address on line 12 to your own. Then, head to line 224 of `start.py`, where you will see 
+
+```
+SERVER_HOST = "10.250.69.0:50051"
+```
+which you need to change to
+```
+SERVER_HOST = "<Your IP Address>:50051"
+```
+
+After completing the above two steps, we should be good to go. Designate one of your terminals to be the server. In this terminal, type the following command:
 ```
 python3 start.py server
 ```
