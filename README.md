@@ -40,29 +40,6 @@ python3 start.py client
 ```
 Congratulations! You have now set up Messenger on your machine. It is now possible to open more terminals and create more clients, which will all be able to access the server concurrently.
 
-# gRPC Setup
-
-To run the gRPC version of the messenger system, start from the CS262 directory you have cloned, then enter
-```
-cd messenger/grpcprotocol
-```
-You should now be in the grpcprotocol directory in each terminal. Now, install gRPC with the following commands:
-```
-pip3 install grpcio
-```
-```
-pip3 install grpcio-tools
-```
-Now, designate one of your terminals to be the server. In this terminal, type the following command:
-```
-python3 start.py server
-```
-You should should see that the server has started on your machine. In your other open terminal, enter the following command:
-```
-python3 start.py client
-```
-Congratulations! You have now set up Messenger on your machine. It is now possible to open more terminals and create more clients, which will all be able to access the server concurrently.
-
 # Wire Protocol: Codebase Structure and Design
 
 The wire protocol version of Messenger contains the following Python files:
@@ -113,6 +90,29 @@ pytest tests.py
 
 ### user.py
 The `user.py` file contains the `User` class, which is used by the client and server to keep track of users in the system.
+
+# gRPC Setup
+
+To run the gRPC version of the messenger system, start from the CS262 directory you have cloned, then enter
+```
+cd messenger/grpcprotocol
+```
+You should now be in the grpcprotocol directory in each terminal. Now, install gRPC with the following commands:
+```
+pip3 install grpcio
+```
+```
+pip3 install grpcio-tools
+```
+Now, designate one of your terminals to be the server. In this terminal, type the following command:
+```
+python3 start.py server
+```
+You should should see that the server has started on your machine. In your other open terminal, enter the following command:
+```
+python3 start.py client
+```
+Congratulations! You have now set up Messenger on your machine. It is now possible to open more terminals and create more clients, which will all be able to access the server concurrently.
 
 # gRPC: Codebase Structure and Design
 
