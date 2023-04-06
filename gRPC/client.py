@@ -67,7 +67,7 @@ class Client:
         received_info = stub.DeleteAccountClient(chat_pb2.ClientMessage(info=username))
         return self.delete_account_processing(username, received_info)
     
-    def logout(self, username, stub: ChatServiceStub):
+    def logout(self):
         """
         Attempts to log out of the account associated with the specified username.
 
@@ -80,8 +80,9 @@ class Client:
                 or None if there was an error.
         """
         # send server request to logout with username and process response from there
-        received_info = stub.LogoutClient(chat_pb2.ClientMessage(info=username))
-        return self.logout_processing(username, received_info)
+        # received_info = stub.LogoutClient(chat_pb2.ClientMessage(info=username))
+        self.SESSION_INFO["username"] = ""
+        return 0
 
     def list_accounts(self, stub: ChatServiceStub):
         """
@@ -206,15 +207,8 @@ class Client:
         Returns:
         - 0 if logout is successful, 1 otherwise
         """
-        # get status of the server response
-        status = received_info.operation
-        # if the status is successful, reset the session info and return 0
-        if status == chat_pb2.SUCCESS:
-            self.SESSION_INFO["username"] = ""
-            return 0
-        # if the logout didn't work, print an error and return 1
-        print("Logout failure")
-        return 1
+        self.SESSION_INFO["username"] = ""
+        return 0
 
     def list_account_processing(self, received_info: ServerMessage):
         """
@@ -287,60 +281,6 @@ class Client:
         return
 
 
-    def receive_incoming_messages(self, username, stub: ChatServiceStub):
-        """
-        Receive incoming messages from the server, polled in background thread.
-
-        Args:
-        - username: string representing the client's username
-        - stub (ChatServiceStub): A gRPC stub for the chat server.
-
-        Returns:
-        - -1 if an interruption occurs during message receiving, None otherwise
-        """
-        try:
-            # send a request to check if there are incoming messages from the client
-            receive_info = stub.CheckIncomingMessagesClient(chat_pb2.ClientMessage(info=username))
-            # if messages exist, print them
-            if receive_info.operation == chat_pb2.MESSAGES_EXIST:
-                for message in receive_info.info.split("\n"):
-                    print("\r\n" + message)
-        except KeyboardInterrupt:
-            # deal with Ctrl-C in the background thread
-            return -1
-        except Exception as e:
-            # deal with any errors as they appear
-            logging.exception(e)
-
-    def poll_incoming_messages(self, event, stub: ChatServiceStub):
-        """
-        Poll incoming messages from the server in background thread to deliver on demand.
-
-        Args:
-        - event (Threading.Event()): the flag to signal when to stop the thread
-        - stub (ChatServiceStub): A gRPC stub for the chat server.
-
-        Returns: None
-        """
-        # while the event to run the while loop is still set to true and not turned off yet,
-        # poll receive_incoming_messages for immediate messages to deliver
-        while event.is_set():
-            # don't do anything if no one is logged in
-            if self.SESSION_INFO["username"] == "":
-                continue
-            try:
-                with self.CLIENT_LOCK:
-                    # call receive_incoming_messages to see if there is a message to print
-                    message = self.receive_incoming_messages(self.SESSION_INFO["username"], stub)
-                    # if ctrl-c was hit, break
-                    if message and message == -1:
-                        break
-                time.sleep(1)
-            except Exception as e:
-                # deal with any errors as they appear and break
-                logging.exception(e)
-                break
-
     def get_login_input(self, stub: ChatServiceStub):
         """
         Displays a list of accounts to log in to and allows the user to choose one to log in.
@@ -364,18 +304,3 @@ class Client:
             print("\nThere are currently no accounts on the server.\n")
             input("Press enter to return to the main menu.\n\n")
             return 1
-
-    def background_listener(self, stub: ChatServiceStub):
-        """
-        Starts a background thread to poll for incoming messages.
-        
-        Args:
-        - stub (ChatServiceStub): A gRPC stub for the chat server.
-
-        Returns: None
-        """
-        # set the background thread event to true so we can control when it is polling until
-        self.RECEIVE_EVENT.set()
-        # create and start background thread
-        background_thread = threading.Thread(target=self.poll_incoming_messages, args=(self.RECEIVE_EVENT,stub))
-        background_thread.start()

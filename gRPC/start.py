@@ -1,6 +1,7 @@
 import curses
 import fnmatch
 import os
+import sqlite3
 import sys
 from chat_pb2_grpc import ChatServiceStub
 from client import Client
@@ -72,7 +73,7 @@ def load_user_menu(this_client: Client, stub: ChatServiceStub):
 
 # if user opts to logout, process logout and go to start menu
   elif user_choice == "Logout":
-    this_client.logout(this_client.SESSION_INFO["username"], stub)
+    this_client.SESSION_INFO["username"] = ""
     start(this_client, stub)
 
   elif user_choice == "Delete account":
@@ -221,7 +222,7 @@ def wrap_input(this_client, string):
 
 if __name__ == "__main__":
 
-  SERVER_HOST = "10.250.69.0:50051"
+  SERVER_HOST = "10.250.165.126:3001"
 
   if len(sys.argv) < 2:
     print("please specify running client or server")
@@ -233,7 +234,6 @@ if __name__ == "__main__":
     with grpc.insecure_channel(SERVER_HOST) as channel: # channel to connect grpc, make calls
       stub = chat_pb2_grpc.ChatServiceStub(channel)
       client = Client()
-      client.background_listener(stub)
 
       start(client, stub)
 
@@ -241,6 +241,12 @@ if __name__ == "__main__":
 # if the server is specified as what the user wants to start, connect grpc server, create server
 # object, and start it
   elif sys.argv[1] == "server":
+    conn = sqlite3.connect('user_database', check_same_thread=False) 
+    c = conn.cursor()
+    c.execute('''
+          CREATE TABLE IF NOT EXISTS users
+          ([user_id] INTEGER PRIMARY KEY, [user_name] TEXT, [incoming_messages] TEXT)
+          ''')
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
     chat_pb2_grpc.add_ChatServiceServicer_to_server(ChatService(), server)
     server.add_insecure_port(SERVER_HOST)

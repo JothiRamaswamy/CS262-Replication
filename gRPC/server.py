@@ -1,22 +1,38 @@
 # inspired by grpc helloworld tutorial at https://github.com/grpc/grpc/tree/master/examples/python/helloworld
 import threading
+
 import chat_pb2
 import chat_pb2_grpc
 from user import User
+
+import sqlite3
+import numpy as np
 
 
 class ChatService(chat_pb2_grpc.ChatServiceServicer):
 
     PORT = 5050 # port to connect to the server with
-
-    SERVER = '10.250.69.0' # replace with your own IPv4 address
-
-    ADDR = (SERVER, PORT) # address that the server is listening into
+    SERVER_HOST = '10.250.35.25' # gets host IPv4 address
+    ADDR = (SERVER_HOST, PORT) # address that the server is listening into
     SEPARATE_CHARACTER = "\n" # character to concat lists into strings with
 
     USER_LOCK = threading.Lock() # dealing with thread safety in functions accessing shared resources
 
     USERS = {} # dictionary holding all user objects { key: username, value: user object}
+
+    LISTEN_FLAG = True
+
+    conn = sqlite3.connect('user_database', check_same_thread=False) 
+    c = conn.cursor()
+
+    def is_valid_user(self, username: str):
+        self.c.execute('''
+            SELECT
+            user_name
+            FROM users
+            ''')
+        users = np.array(self.c.fetchall()).flatten()
+        return username in users
 
     def LoginClient(self, request, context):
         """
@@ -72,7 +88,8 @@ class ChatService(chat_pb2_grpc.ChatServiceServicer):
         A method that handles a client's request for immediate messages. Separated from processing 
         for ease of testing
         """
-        return self.check_msg_processing(request)
+        if self.LISTEN_FLAG:
+            return self.check_msg_processing(request)
 
     def login_processing(self, request):
         """Attempts to process a client's login request.
@@ -86,9 +103,7 @@ class ChatService(chat_pb2_grpc.ChatServiceServicer):
         """
         # if the requested username is in the existing users, log the user in and return success
         with self.USER_LOCK:
-            if request.info in self.USERS:
-                if not self.USERS[request.info].logged_in:
-                    self.USERS[request.info].logged_in = True
+            if self.is_valid_user(request.info):
                 return chat_pb2.ServerMessage(operation=chat_pb2.SUCCESS, info="")
         # if the requested username is not associated with a current user, return ACCOUNT_DOES_NOT_EXIST
         return chat_pb2.ServerMessage(operation=chat_pb2.ACCOUNT_DOES_NOT_EXIST, info="")
@@ -105,10 +120,17 @@ class ChatService(chat_pb2_grpc.ChatServiceServicer):
         """
         # if the requested username is in the existing users, log the user in and return ACCOUNT_ALREADY_EXISTS
         with self.USER_LOCK:
-            if request.info in self.USERS:
+            if self.is_valid_user(request.info):
                 return chat_pb2.ServerMessage(operation=chat_pb2.ACCOUNT_ALREADY_EXISTS, info="")
             new_user = User(request.info)
             self.USERS[request.info] = new_user
+            self.c.execute('''
+          INSERT INTO users (user_name, incoming_messages)
+
+                VALUES
+                (?, ?)
+          ''', (request.info, ''))
+            self.conn.commit()
         # if the requested username is not associated with a current user, return success
         return chat_pb2.ServerMessage(operation=chat_pb2.SUCCESS, info="")
 
@@ -124,8 +146,10 @@ class ChatService(chat_pb2_grpc.ChatServiceServicer):
         """
         with self.USER_LOCK:
             # if the requested username is in the existing users and logged in, delete and return success
-            if request.info in self.USERS and self.USERS[request.info].logged_in:
-                del self.USERS[request.info]
+            if self.is_valid_user(request.info):
+                execute_str = 'DELETE FROM users WHERE user_name = \'' + request.info + '\''
+                self.c.execute(execute_str)
+                self.conn.commit()
                 return chat_pb2.ServerMessage(operation=chat_pb2.SUCCESS, info="")
         # if the requested username is not associated with a current user, return ACCOUNT_DOES_NOT_EXIST
         return chat_pb2.ServerMessage(operation=chat_pb2.ACCOUNT_DOES_NOT_EXIST, info="")
@@ -138,14 +162,11 @@ class ChatService(chat_pb2_grpc.ChatServiceServicer):
             exist on the server.
         """
         with self.USER_LOCK:
-            # if there are no existing users, return failure
-            if not self.USERS:
-                return chat_pb2.ServerMessage(operation=chat_pb2.FAILURE, info="")
-            else:
-                # otherwise, get the usernames of existing users, concat them, and send back to client
-                accounts = self.USERS.keys()
-                accounts_string = "\n".join(accounts)
-                return chat_pb2.ServerMessage(operation=chat_pb2.SUCCESS, info=accounts_string)
+            # otherwise, get the usernames of existing users, concat them, and send back to client
+            self.c.execute('SELECT user_name FROM users')
+            accounts = np.array(self.c.fetchall()).flatten()
+            accounts_string = "\n".join(accounts).strip()
+            return chat_pb2.ServerMessage(operation=chat_pb2.SUCCESS, info=accounts_string)
 
     def send_msg_processing(self, request):
         """Attempts to process a client's send message request.
@@ -161,8 +182,18 @@ class ChatService(chat_pb2_grpc.ChatServiceServicer):
         with self.USER_LOCK:
             # if the sender and receiver are valid users, queue the message based on the logged in
             # status of the receiver
-            if receiver in self.USERS and sender in self.USERS:
-                self.USERS[receiver].queue_message(msg, deliver_now=self.USERS[receiver].logged_in)
+            if self.is_valid_user(receiver):
+                self.LISTEN_FLAG = False
+                self.c.execute('SELECT incoming_messages FROM users WHERE user_name =?', (receiver,))
+                messages = np.array(self.c.fetchall()).flatten()[0].strip()
+                if len(messages) > 0:
+                    messages += "\n" + msg
+                else:
+                    messages = msg
+                execute_str = 'UPDATE users SET incoming_messages = \'' + messages + "\' WHERE user_name = \'" + receiver + "\'"
+                self.c.execute(execute_str)
+                self.conn.commit()
+                self.LISTEN_FLAG = True
                 return chat_pb2.ServerMessage(operation=chat_pb2.SUCCESS, info="")
             else:
                 return chat_pb2.ServerMessage(operation=chat_pb2.FAILURE, info="")
@@ -179,12 +210,16 @@ class ChatService(chat_pb2_grpc.ChatServiceServicer):
         """
         with self.USER_LOCK:
             # if the request user is valid, show undelivered messages if the queue is not empty
-            if request.info in self.USERS:
-                if self.USERS[request.info].undelivered_messages.empty(): # handle case of no undelivered messages
+            if self.is_valid_user(request.info):
+                self.c.execute('SELECT incoming_messages FROM users WHERE user_name=?', (request.info, ))
+                message_str = np.array(self.c.fetchall()).flatten()[0]
+                if len(message_str) == 0: # handle case of no undelivered messages
                     return chat_pb2.ServerMessage(operation=chat_pb2.NO_MESSAGES, info="")
                 # join messages and send back to client
-                messages = self.SEPARATE_CHARACTER.join(self.USERS[request.info].get_current_messages())
-                return chat_pb2.ServerMessage(operation=chat_pb2.MESSAGES_EXIST, info=messages)
+                execute_str = 'UPDATE users SET incoming_messages = "" WHERE user_name = \'' + request.info + '\''
+                self.c.execute(execute_str)
+                self.conn.commit()
+                return chat_pb2.ServerMessage(operation=chat_pb2.MESSAGES_EXIST, info=message_str)
             return chat_pb2.ServerMessage(operation=chat_pb2.FAILURE, info="")
 
     def logout_processing(self, request):
@@ -196,13 +231,7 @@ class ChatService(chat_pb2_grpc.ChatServiceServicer):
         Returns:
             ServerMessage: status SUCCESS if successfully logged out, FAILURE otherwise.
         """
-        with self.USER_LOCK:
-            # if the user is valid and logged in, log them out and return success
-            if request.info in self.USERS and self.USERS[request.info].logged_in:
-                self.USERS[request.info].logged_in = False
-                return chat_pb2.ServerMessage(operation=chat_pb2.SUCCESS, info="")
-        # otherwise return failure
-        return chat_pb2.ServerMessage(operation=chat_pb2.FAILURE, info="")
+        pass
 
     def check_msg_processing(self, request):
         """Attempts to process a client's request to check for messages to deliver immediately.
@@ -214,17 +243,5 @@ class ChatService(chat_pb2_grpc.ChatServiceServicer):
             ServerMessage: status NO_MESSAGES if none exist, MESSAGES_EXIST if they do, FAILURE if 
             user is invalid.
         """
-        if request.info in self.USERS:
-            # return that there is no messages to be delivered immediately if empty queue
-            if self.USERS[request.info].immediate_messages.empty():
-                return chat_pb2.ServerMessage(operation=chat_pb2.NO_MESSAGES, info="")
-            else:
-                # return that there are messages to be delivered immediately, and stringify the 
-                # messages to send back
-                messages = self.USERS[request.info].get_current_messages(deliver_now=True)
-                message_string = self.SEPARATE_CHARACTER.join(messages)
-                return chat_pb2.ServerMessage(operation=chat_pb2.MESSAGES_EXIST, info=message_string)
-        # return failure if user info cannot be found
-        print("Failure finding user info")
-        return chat_pb2.ServerMessage(operation=chat_pb2.FAILURE, info="")
+        return self.view_msg_processing(request)
         
