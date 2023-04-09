@@ -120,7 +120,7 @@ class Client:
                 try:
                     received_info = stubs[2].ListAccountClient(chat_pb2.ClientMessage(info=""))
                 except:
-                    return 1
+                    return -1
         
         return self.list_account_processing(received_info)
 
@@ -336,7 +336,9 @@ class Client:
         """
         # get list of accounts to login to
         received_list = self.list_accounts(stubs)
-        if received_list != 1:
+        if received_list == -1:
+            return -1
+        elif received_list != 1:
             # if accounts exist on the server, allow users to choose one and login
             accounts = received_list.info.split("\n")
             message = "\nChoose an account:\n\n"
