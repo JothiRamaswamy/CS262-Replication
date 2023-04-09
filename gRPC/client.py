@@ -59,7 +59,7 @@ class Client:
         try:
             received_info = stubs[0].CreateAccountClient(chat_pb2.ClientMessage(info=username))
             stubs[1].CreateAccountClient(chat_pb2.ClientMessage(info=username))
-            stubs[2].CreateAccountClient(chat_pb2.ClientMessage(info=username))
+            #stubs[2].CreateAccountClient(chat_pb2.ClientMessage(info=username))
         except:
             return 1
         return self.create_account_processing(username, received_info)
@@ -80,7 +80,7 @@ class Client:
         try:
             received_info = stubs[0].DeleteAccountClient(chat_pb2.ClientMessage(info=username))
             stubs[1].DeleteAccountClient(chat_pb2.ClientMessage(info=username))
-            stubs[2].DeleteAccountClient(chat_pb2.ClientMessage(info=username))
+            #stubs[2].DeleteAccountClient(chat_pb2.ClientMessage(info=username))
         except:
             return 1
         return self.delete_account_processing(username, received_info)
@@ -116,7 +116,7 @@ class Client:
         try:
             received_info = stubs[0].ListAccountClient(chat_pb2.ClientMessage(info=""))
             stubs[1].ListAccountClient(chat_pb2.ClientMessage(info=""))
-            stubs[2].ListAccountClient(chat_pb2.ClientMessage(info=""))
+            #stubs[2].ListAccountClient(chat_pb2.ClientMessage(info=""))
         except:
             return 1
         

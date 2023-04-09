@@ -37,7 +37,11 @@ def load_user_menu(this_client: Client, stubs: List[ChatServiceStub]):
 
     # if the user opts to send a message, get the list of accounts to send a message to
     decoded_data = this_client.list_accounts(stubs)
-    accounts = decoded_data.info.split("\n")
+    try:
+      accounts = decoded_data.info.split("\n")
+    except:
+      print("Disconnected from all servers")
+      return
     message = "\nWho would you like to send messages to?\n\n"
 
     # create a menu with possible message receivers
@@ -149,6 +153,9 @@ def start(this_client: Client, stubs: List[ChatServiceStub]):
     try:
         if this_client.get_login_input(stubs) == 0:
             load_user_menu(this_client, stubs)
+        elif this_client.get_login_input(stubs) == -1:
+            print("Disconnected from all servers")
+            return
         else:
             return start(this_client, stubs)
     except KeyboardInterrupt:
