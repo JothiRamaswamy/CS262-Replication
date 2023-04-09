@@ -1,8 +1,6 @@
-import logging
-import socket
 import curses
 import threading
-import time
+from typing import List
 from chat_pb2 import ServerMessage
 
 from menu import menu
@@ -17,13 +15,13 @@ class Client:
     CLIENT_LOCK = threading.Lock() # dealing with thread safety in functions accessing shared resources
     RECEIVE_EVENT = threading.Event() # event for controlling the background thread listening loop
 
-    def login(self, username, stub: ChatServiceStub):
+    def login(self, username, stubs: List[ChatServiceStub]):
         """
         Attempts to log in with the specified username.
 
         Args:
             username (str): The username to log in with.
-            stub (ChatServiceStub): A gRPC stub for the chat server.
+            stubs (List[ChatServiceStub]): A list of gRPC stubs for the chat server.
 
         Returns:
             int: 0 if the login attempt was successful, 1 if the specified
@@ -31,16 +29,16 @@ class Client:
                 error.
         """
         # send server request to login with username and process response from there
-        received_info = stub.LoginClient(chat_pb2.ClientMessage(info=username))
+        received_info = stubs[0].LoginClient(chat_pb2.ClientMessage(info=username))
         return self.login_processing(username, received_info)
 
-    def create_account(self, username, stub: ChatServiceStub):
+    def create_account(self, username, stubs: List[ChatServiceStub]):
         """
         Attempts to create a new account with the specified username.
 
         Args:
             username (str): The username to create the account with.
-            stub (ChatServiceStub): A gRPC stub for the chat server.
+            stubs (List[ChatServiceStub]): A list of gRPC stubs for the chat server.
 
         Returns:
             int: 0 if the account creation was successful, 1 if the specified
@@ -48,23 +46,41 @@ class Client:
                 error.
         """
         # send server request to create account with username and process response from there
-        received_info = stub.CreateAccountClient(chat_pb2.ClientMessage(info=username))
+        try:
+            received_info = stubs[0].CreateAccountClient(chat_pb2.ClientMessage(info=username))
+        except:
+            try:
+                received_info = stubs[1].CreateAccountClient(chat_pb2.ClientMessage(info=username))
+            except:
+                try:
+                    received_info = stubs[2].CreateAccountClient(chat_pb2.ClientMessage(info=username))
+                except:
+                    return 1
         return self.create_account_processing(username, received_info)
 
-    def delete_account(self, username, stub: ChatServiceStub):
+    def delete_account(self, username, stubs: List[ChatServiceStub]):
         """
         Attempts to delete the account associated with the specified username.
 
         Args:
             username (str): The username to delete the account for.
-            stub (ChatServiceStub): A gRPC stub for the chat server.
+            stubs (List[ChatServiceStub]): A list of gRPC stubs for the chat server.
 
         Returns:
             int: 0 if the account deletion was successful, 1 if there was a
                 deletion failure, or None if there was an error.
         """
         # send server request to delete account with username and process response from there
-        received_info = stub.DeleteAccountClient(chat_pb2.ClientMessage(info=username))
+        try:
+            received_info = stubs[0].DeleteAccountClient(chat_pb2.ClientMessage(info=username))
+        except:
+            try:
+                received_info = stubs[1].DeleteAccountClient(chat_pb2.ClientMessage(info=username))
+            except:
+                try:
+                    received_info = stubs[2].DeleteAccountClient(chat_pb2.ClientMessage(info=username))
+                except:
+                    return 1
         return self.delete_account_processing(username, received_info)
     
     def logout(self):
@@ -84,21 +100,31 @@ class Client:
         self.SESSION_INFO["username"] = ""
         return 0
 
-    def list_accounts(self, stub: ChatServiceStub):
+    def list_accounts(self, stubs: List[ChatServiceStub]):
         """
         Attempts to list all of the accounts created in the chat server.
 
         Args:
-            stub (ChatServiceStub): A gRPC stub for the chat server.
+            stubs (List[ChatServiceStub]): A list of gRPC stubs for the chat server.
 
         Returns:
             int: a string of joined usernames if successful, 1 if there was an error.
         """
         # send server request to list accounts and process response from there
-        received_info = stub.ListAccountClient(chat_pb2.ClientMessage(info=""))
+        try:
+            received_info = stubs[0].ListAccountClient(chat_pb2.ClientMessage(info=""))
+        except:
+            try:
+                received_info = stubs[1].ListAccountClient(chat_pb2.ClientMessage(info=""))
+            except:
+                try:
+                    received_info = stubs[2].ListAccountClient(chat_pb2.ClientMessage(info=""))
+                except:
+                    return 1
+        
         return self.list_account_processing(received_info)
 
-    def send_message(self, sender, receiver, msg, stub: ChatServiceStub):
+    def send_message(self, sender, receiver, msg, stubs: List[ChatServiceStub]):
         """
         Attempts to send a message from a sender account to a receiver account.
 
@@ -106,7 +132,7 @@ class Client:
             sender (str): The username of the account sending the message.
             receiver (str): The username of the account receiving the message.
             message (str): The message to send from sender to receiver.
-            stub (ChatServiceStub): A gRPC stub for the chat server.
+            stubs (List[ChatServiceStub]): A list of gRPC stubs for the chat server.
 
         Returns:
             int: 0 if the send was successful, 1 if there was a send failure.
@@ -114,22 +140,40 @@ class Client:
         # turn all the info into a string separated by an enter character
         total_info = sender + "\n" + receiver + "\n" + msg
         # send server request to send message to receiver and process response from there
-        received_info = stub.SendMessageClient(chat_pb2.ClientMessage(info=total_info))
+        try:
+            received_info = stubs[0].SendMessageClient(chat_pb2.ClientMessage(info=total_info))
+        except:
+            try:
+                received_info = stubs[1].SendMessageClient(chat_pb2.ClientMessage(info=total_info))
+            except:
+                try:
+                    received_info = stubs[2].SendMessageClient(chat_pb2.ClientMessage(info=total_info))
+                except:
+                    return 1
         return self.send_message_processing(received_info)
     
-    def view_msgs(self, username, stub: ChatServiceStub):
+    def view_msgs(self, username, stubs: List[ChatServiceStub]):
         """
         Attempts to retrieve all unread messages for the specified user.
 
         Args:
             username (str): The username of the user whose messages will be retrieved.
-            stub (ChatServiceStub): A gRPC stub for the chat server.
+            stubs (List[ChatServiceStub]): A list of gRPC stubs for the chat server.
 
         Returns:
             int: 0 if the operation was successful, 1 if there was a failure.
         """
         # send server request to view messages from username and process response from there
-        received_info = stub.ViewMessageClient(chat_pb2.ClientMessage(info=username))
+        try:
+            received_info = stubs[0].ViewMessageClient(chat_pb2.ClientMessage(info=username))
+        except:
+            try:
+                received_info = stubs[1].ViewMessageClient(chat_pb2.ClientMessage(info=username))
+            except:
+                try:
+                    received_info = stubs[2].ViewMessageClient(chat_pb2.ClientMessage(info=username))
+                except:
+                    return 1
         return self.view_message_processing(received_info)
 
     def login_processing(self, username, received_info: ServerMessage):
@@ -281,23 +325,23 @@ class Client:
         return
 
 
-    def get_login_input(self, stub: ChatServiceStub):
+    def get_login_input(self, stubs: List[ChatServiceStub]):
         """
         Displays a list of accounts to log in to and allows the user to choose one to log in.
         
         Args:
-        - stub (ChatServiceStub): A gRPC stub for the chat server.
+        - stubs (List[ChatServiceStub]): A list of gRPC stubs for the chat server.
 
         Returns: login status if accounts exist to log into, 1 otherwise
         """
         # get list of accounts to login to
-        received_list = self.list_accounts(stub)
+        received_list = self.list_accounts(stubs)
         if received_list != 1:
             # if accounts exist on the server, allow users to choose one and login
             accounts = received_list.info.split("\n")
             message = "\nChoose an account:\n\n"
             username = curses.wrapper(menu, accounts, message)
-            return self.login(username, stub)
+            return self.login(username, stubs)
         else:
             # if no accounts exist yet on the server, print out a message and return 1 back to
             # the previous menu

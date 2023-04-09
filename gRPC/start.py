@@ -3,6 +3,7 @@ import fnmatch
 import os
 import sqlite3
 import sys
+from typing import List
 from chat_pb2_grpc import ChatServiceStub
 from client import Client
 from server import ChatService
@@ -11,13 +12,13 @@ import grpc
 import chat_pb2_grpc
 from concurrent import futures
 
-def load_user_menu(this_client: Client, stub: ChatServiceStub):
+def load_user_menu(this_client: Client, stubs: List[ChatServiceStub]):
   """
   Load the user menu for when the client is logged into an account
 
   Args:
       - this_client: The current instance of Client.
-      - stub (ChatServiceStub): A gRPC stub for the chat server.
+      - stubs (List[ChatServiceStub]): A list of gRPC stubs for the chat server.
 
   Returns:
       - None
@@ -35,7 +36,7 @@ def load_user_menu(this_client: Client, stub: ChatServiceStub):
   if user_choice == "Send messages":
 
     # if the user opts to send a message, get the list of accounts to send a message to
-    decoded_data = this_client.list_accounts(stub)
+    decoded_data = this_client.list_accounts(stubs)
     accounts = decoded_data.info.split("\n")
     message = "\nWho would you like to send messages to?\n\n"
 
@@ -58,23 +59,23 @@ def load_user_menu(this_client: Client, stub: ChatServiceStub):
         break
 
       # each time a message is inputted, process and send it across the server
-      this_client.send_message(this_client.SESSION_INFO["username"], receiver, processed_message, stub)
+      this_client.send_message(this_client.SESSION_INFO["username"], receiver, processed_message, stubs)
     
     # return back to the user menu once exited
-    load_user_menu(this_client, stub)
+    load_user_menu(this_client, stubs)
     return
 
 # if user opts to view undelivered messages, request messages from the server and 
 # display them if they are there
   elif user_choice == "View my messages":
-    this_client.view_msgs(this_client.SESSION_INFO["username"], stub)
+    this_client.view_msgs(this_client.SESSION_INFO["username"], stubs)
     wrap_input(this_client, "\nPress enter to return to the main menu.\n\n")
-    load_user_menu(this_client, stub)
+    load_user_menu(this_client, stubs)
 
 # if user opts to logout, process logout and go to start menu
   elif user_choice == "Logout":
     this_client.SESSION_INFO["username"] = ""
-    start(this_client, stub)
+    start(this_client, stubs)
 
   elif user_choice == "Delete account":
 
@@ -85,19 +86,19 @@ def load_user_menu(this_client: Client, stub: ChatServiceStub):
 
     # if the decision is confirmed, process delete request and go to start menu
     if choice == "Delete forever":
-      this_client.delete_account(this_client.SESSION_INFO["username"], stub)
-      return start(this_client, stub)
+      this_client.delete_account(this_client.SESSION_INFO["username"], stubs)
+      return start(this_client, stubs)
     else:
       # if they don't confirm the decision, go back to the logged in user menu
-      load_user_menu(this_client, stub)
+      load_user_menu(this_client, stubs)
 
-def start(this_client: Client, stub: ChatServiceStub):
+def start(this_client: Client, stubs: List[ChatServiceStub]):
   """
   Load the start menu for when the client enters the service or is not logged in
 
   Args:
       - this_client: The current instance of Client.
-      - stub (ChatServiceStub): A gRPC stub for the chat server.
+      - stubs (List[ChatServiceStub]): A list of gRPC stubs for the chat server.
 
   Returns:
       - None
@@ -131,31 +132,31 @@ def start(this_client: Client, stub: ChatServiceStub):
 
       # if the user tries to exit the input interface, go back to start menu beginning
       if account_name == "EXIT":
-        return start(this_client, stub)
+        return start(this_client, stubs)
 
       if len(account_name) > 10:
         print("\nUsernames must be at most 10 characters.\n")
       else:
         # if length of username works, validate that it isn't already used. Otherwise, stay in loop
-        status = this_client.create_account(account_name, stub)
+        status = this_client.create_account(account_name, stubs)
     
     # if valid username, direct the now logged in user to user menu
-    load_user_menu(this_client, stub)
+    load_user_menu(this_client, stubs)
 
   # if the user opts to login, get their login input and validate that the username exists.
   # if login successful direct to user menu, otherwise go back to start menu
   elif name == "Login":
     try:
-        if this_client.get_login_input(stub) == 0:
-            load_user_menu(this_client, stub)
+        if this_client.get_login_input(stubs) == 0:
+            load_user_menu(this_client, stubs)
         else:
-            return start(this_client, stub)
+            return start(this_client, stubs)
     except KeyboardInterrupt:
         return this_client.quit_messenger()
 
 # if the user opts to list existing accounts, get the list of accounts from the server
   elif name == "List accounts":
-    decoded_data = this_client.list_accounts(stub)
+    decoded_data = this_client.list_accounts(stubs)
     if decoded_data != 1:
       # if the list is valid, split it by the enter character that initially divided it
       accounts = decoded_data.info.split("\n")
@@ -177,7 +178,7 @@ def start(this_client: Client, stub: ChatServiceStub):
       print("\nThere are currently no accounts on the server.\n")
       wrap_input(this_client, "Press enter to return to the main menu.\n\n")
     
-    return start(this_client, stub)
+    return start(this_client, stubs)
 
 def wrap_menu(this_client, menu, actions, message):
     """
@@ -222,7 +223,9 @@ def wrap_input(this_client, string):
 
 if __name__ == "__main__":
 
-  SERVER_HOST = "10.250.165.126:3001"
+  SERVER_HOST = "localhost:3001"
+  SERVER_HOST_BACKUP_1 = "localhost:3002"
+  SERVER_HOST_BACKUP_2 = "localhost:3003"
 
   if len(sys.argv) < 2:
     print("please specify running client or server")
@@ -231,11 +234,15 @@ if __name__ == "__main__":
 # client, start background listener thread, and direct to start menu 
   elif sys.argv[1] == "client":
     os.system('clear') # clear terminal on start for client
-    with grpc.insecure_channel(SERVER_HOST) as channel: # channel to connect grpc, make calls
-      stub = chat_pb2_grpc.ChatServiceStub(channel)
-      client = Client()
+    with grpc.insecure_channel(SERVER_HOST) as channel:
+      with grpc.insecure_channel(SERVER_HOST_BACKUP_1) as channel1:
+        with grpc.insecure_channel(SERVER_HOST_BACKUP_2) as channel2: # channel to connect grpc, make calls
+          stub = chat_pb2_grpc.ChatServiceStub(channel)
+          stub1 = chat_pb2_grpc.ChatServiceStub(channel1)
+          stub2 = chat_pb2_grpc.ChatServiceStub(channel2)
+          client = Client()
 
-      start(client, stub)
+          start(client, [stub, stub1, stub2])
 
 
 # if the server is specified as what the user wants to start, connect grpc server, create server
@@ -247,10 +254,20 @@ if __name__ == "__main__":
           CREATE TABLE IF NOT EXISTS users
           ([user_id] INTEGER PRIMARY KEY, [user_name] TEXT, [incoming_messages] TEXT)
           ''')
-    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
+    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10), options=(('grpc.so_reuseport', 0),))
     chat_pb2_grpc.add_ChatServiceServicer_to_server(ChatService(), server)
-    server.add_insecure_port(SERVER_HOST)
-    print("[STARTING] Server is starting at IPv4 Address " + SERVER_HOST + " ...")
+    HOST = SERVER_HOST
+    try:
+      server.add_insecure_port(SERVER_HOST)
+    except RuntimeError:
+      try:
+        HOST = SERVER_HOST_BACKUP_1
+        server.add_insecure_port(SERVER_HOST_BACKUP_1)
+      except RuntimeError:
+        HOST = SERVER_HOST_BACKUP_2
+        server.add_insecure_port(SERVER_HOST_BACKUP_2)
+    os.system('clear')
+    print("[STARTING] Server is starting at IPv4 Address " + HOST + " ...")
     server.start()
     server.wait_for_termination()
 
