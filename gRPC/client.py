@@ -29,7 +29,17 @@ class Client:
                 error.
         """
         # send server request to login with username and process response from there
-        received_info = stubs[0].LoginClient(chat_pb2.ClientMessage(info=username))
+        try:
+            received_info = stubs[0].LoginClient(chat_pb2.ClientMessage(info=username))
+        except:
+            try:
+                received_info = stubs[1].LoginClient(chat_pb2.ClientMessage(info=username))
+            except:
+                try:
+                    received_info = stubs[2].LoginClient(chat_pb2.ClientMessage(info=username))
+                except:
+                    return 1
+
         return self.login_processing(username, received_info)
 
     def create_account(self, username, stubs: List[ChatServiceStub]):
@@ -48,14 +58,10 @@ class Client:
         # send server request to create account with username and process response from there
         try:
             received_info = stubs[0].CreateAccountClient(chat_pb2.ClientMessage(info=username))
+            stubs[1].CreateAccountClient(chat_pb2.ClientMessage(info=username))
+            stubs[2].CreateAccountClient(chat_pb2.ClientMessage(info=username))
         except:
-            try:
-                received_info = stubs[1].CreateAccountClient(chat_pb2.ClientMessage(info=username))
-            except:
-                try:
-                    received_info = stubs[2].CreateAccountClient(chat_pb2.ClientMessage(info=username))
-                except:
-                    return 1
+            return 1
         return self.create_account_processing(username, received_info)
 
     def delete_account(self, username, stubs: List[ChatServiceStub]):
@@ -73,14 +79,10 @@ class Client:
         # send server request to delete account with username and process response from there
         try:
             received_info = stubs[0].DeleteAccountClient(chat_pb2.ClientMessage(info=username))
+            stubs[1].DeleteAccountClient(chat_pb2.ClientMessage(info=username))
+            stubs[2].DeleteAccountClient(chat_pb2.ClientMessage(info=username))
         except:
-            try:
-                received_info = stubs[1].DeleteAccountClient(chat_pb2.ClientMessage(info=username))
-            except:
-                try:
-                    received_info = stubs[2].DeleteAccountClient(chat_pb2.ClientMessage(info=username))
-                except:
-                    return 1
+            return 1
         return self.delete_account_processing(username, received_info)
     
     def logout(self):
@@ -113,14 +115,10 @@ class Client:
         # send server request to list accounts and process response from there
         try:
             received_info = stubs[0].ListAccountClient(chat_pb2.ClientMessage(info=""))
+            stubs[1].ListAccountClient(chat_pb2.ClientMessage(info=""))
+            stubs[2].ListAccountClient(chat_pb2.ClientMessage(info=""))
         except:
-            try:
-                received_info = stubs[1].ListAccountClient(chat_pb2.ClientMessage(info=""))
-            except:
-                try:
-                    received_info = stubs[2].ListAccountClient(chat_pb2.ClientMessage(info=""))
-                except:
-                    return 1
+            return 1
         
         return self.list_account_processing(received_info)
 
@@ -142,14 +140,10 @@ class Client:
         # send server request to send message to receiver and process response from there
         try:
             received_info = stubs[0].SendMessageClient(chat_pb2.ClientMessage(info=total_info))
+            stubs[1].SendMessageClient(chat_pb2.ClientMessage(info=total_info))
+            stubs[2].SendMessageClient(chat_pb2.ClientMessage(info=total_info))
         except:
-            try:
-                received_info = stubs[1].SendMessageClient(chat_pb2.ClientMessage(info=total_info))
-            except:
-                try:
-                    received_info = stubs[2].SendMessageClient(chat_pb2.ClientMessage(info=total_info))
-                except:
-                    return 1
+            return 1
         return self.send_message_processing(received_info)
     
     def view_msgs(self, username, stubs: List[ChatServiceStub]):
