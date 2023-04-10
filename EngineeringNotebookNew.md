@@ -42,6 +42,23 @@ The `logout_processing()` method does nothing as there is no session management 
 
 The `check_msg_processing()` method is used by the server to periodically check for incoming messages for a user and return them to the user.
 
+## tests3.py
+
+The tests3.py script contains a set of unit tests for the ChatApp system. These tests check that the different functions of the Client class, which represents the client-side of the ChatApp, are working correctly. Specifically, the tests check the following functions:
+
+`login`: tests that a user can log in with a valid username
+`create_account`: tests that a user can create a new account with a valid username
+`delete_account`: tests that a user can delete their own account
+`logout`: tests that a user can log out of their account
+`list_accounts`: tests that the system can return a list of existing user accounts
+`send_message`: tests that a user can send a message to another user
+`view_msgs`: tests that a user can view their own messages
+Each test case creates a new `Client` object and a new gRPC channel and stub to connect to the ChatService server. Then, the relevant function is called with appropriate arguments, and the result is checked against an expected value using the assertEqual method from the unittest.TestCase class.
+
+The `setUpClass` and `tearDownClass` methods are used to start and stop an instance of the ChatService server, respectively. This is done using a separate thread to allow the tests to run in parallel with the server.
+
+To run the tests, the script is executed with `python3 tests3.py`. If all tests pass, a summary of the test results is displayed. If any tests fail, the details of the failure are printed to the console.
+
 ## Conclusion
 
 In conclusion, the provided code implements a simple chat system using gRPC and SQLite. The client can log in, create an account, delete an account, list accounts, send messages, and view messages. The server uses SQLite to store user information and incoming messages.
