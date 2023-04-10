@@ -53,7 +53,7 @@ The tests3.py script contains a set of unit tests for the ChatApp system. These 
 `list_accounts`: tests that the system can return a list of existing user accounts
 `send_message`: tests that a user can send a message to another user
 `view_msgs`: tests that a user can view their own messages
-Each test case creates a new `Client` object and a new gRPC channel and stub to connect to the ChatService server. Then, the relevant function is called with appropriate arguments, and the result is checked against an expected value using the assertEqual method from the unittest.TestCase class.
+Each test case creates a new `Client` object and a new gRPC channel and stub to connect to the ChatService server. Then, the relevant function is called with appropriate arguments, and the result is checked against an expected value using the `assertEqual` method from the `unittest.TestCase` class.
 
 The `setUpClass` and `tearDownClass` methods are used to start and stop an instance of the ChatService server, respectively. This is done using a separate thread to allow the tests to run in parallel with the server.
 
