@@ -255,26 +255,31 @@ if __name__ == "__main__":
 # if the server is specified as what the user wants to start, connect grpc server, create server
 # object, and start it
   elif sys.argv[1] == "server":
-    conn = sqlite3.connect('user_database', check_same_thread=False) 
-    c = conn.cursor()
-    c.execute('''
-          CREATE TABLE IF NOT EXISTS users
-          ([user_id] INTEGER PRIMARY KEY, [user_name] TEXT, [incoming_messages] TEXT)
-          ''')
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10), options=(('grpc.so_reuseport', 0),))
-    chat_pb2_grpc.add_ChatServiceServicer_to_server(ChatService(), server)
     HOST = SERVER_HOST
+    db = "user_database"
     try:
       server.add_insecure_port(SERVER_HOST)
     except RuntimeError:
       try:
         HOST = SERVER_HOST_BACKUP_1
+        db = "user_database_2"
         server.add_insecure_port(SERVER_HOST_BACKUP_1)
       except RuntimeError:
         HOST = SERVER_HOST_BACKUP_2
+        db = "user_database_3"
         server.add_insecure_port(SERVER_HOST_BACKUP_2)
+    service = ChatService()
+    service.start_db(db)
+    chat_pb2_grpc.add_ChatServiceServicer_to_server(service, server)
     os.system('clear')
     print("[STARTING] Server is starting at IPv4 Address " + HOST + " ...")
+    conn = sqlite3.connect(db, check_same_thread=False) 
+    c = conn.cursor()
+    c.execute('''
+          CREATE TABLE IF NOT EXISTS users
+          ([user_id] INTEGER PRIMARY KEY, [user_name] TEXT, [incoming_messages] TEXT)
+          ''')
     server.start()
     server.wait_for_termination()
 

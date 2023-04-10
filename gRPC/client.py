@@ -56,11 +56,22 @@ class Client:
                 error.
         """
         # send server request to create account with username and process response from there
+        fail_count = 0
         try:
             received_info = stubs[0].CreateAccountClient(chat_pb2.ClientMessage(info=username))
-            stubs[1].CreateAccountClient(chat_pb2.ClientMessage(info=username))
-            #stubs[2].CreateAccountClient(chat_pb2.ClientMessage(info=username))
+            print(received_info)
         except:
+            fail_count += 1
+
+        try:
+            received_info = stubs[1].CreateAccountClient(chat_pb2.ClientMessage(info=username))
+        except:
+            fail_count += 1
+        try:
+            received_info = stubs[2].CreateAccountClient(chat_pb2.ClientMessage(info=username))
+        except:
+            fail_count += 1
+        if fail_count == 3:
             return 1
         return self.create_account_processing(username, received_info)
 
@@ -77,11 +88,20 @@ class Client:
                 deletion failure, or None if there was an error.
         """
         # send server request to delete account with username and process response from there
+        fail_count = 0
         try:
             received_info = stubs[0].DeleteAccountClient(chat_pb2.ClientMessage(info=username))
-            stubs[1].DeleteAccountClient(chat_pb2.ClientMessage(info=username))
-            #stubs[2].DeleteAccountClient(chat_pb2.ClientMessage(info=username))
         except:
+            fail_count += 1
+        try:
+            received_info = stubs[1].DeleteAccountClient(chat_pb2.ClientMessage(info=username))
+        except:
+            fail_count += 1
+        try:
+            received_info = stubs[2].DeleteAccountClient(chat_pb2.ClientMessage(info=username))
+        except:
+            fail_count += 1
+        if fail_count == 3:
             return 1
         return self.delete_account_processing(username, received_info)
     
@@ -115,10 +135,14 @@ class Client:
         # send server request to list accounts and process response from there
         try:
             received_info = stubs[0].ListAccountClient(chat_pb2.ClientMessage(info=""))
-            stubs[1].ListAccountClient(chat_pb2.ClientMessage(info=""))
-            #stubs[2].ListAccountClient(chat_pb2.ClientMessage(info=""))
         except:
-            return 1
+            try:
+                received_info = stubs[1].ListAccountClient(chat_pb2.ClientMessage(info=""))
+            except:
+                try:
+                    received_info = stubs[2].ListAccountClient(chat_pb2.ClientMessage(info=""))
+                except:
+                    return 1
         
         return self.list_account_processing(received_info)
 
@@ -138,11 +162,20 @@ class Client:
         # turn all the info into a string separated by an enter character
         total_info = sender + "\n" + receiver + "\n" + msg
         # send server request to send message to receiver and process response from there
+        fail_count = 0
         try:
             received_info = stubs[0].SendMessageClient(chat_pb2.ClientMessage(info=total_info))
-            stubs[1].SendMessageClient(chat_pb2.ClientMessage(info=total_info))
-            stubs[2].SendMessageClient(chat_pb2.ClientMessage(info=total_info))
         except:
+            fail_count += 1
+        try:
+            received_info = stubs[1].SendMessageClient(chat_pb2.ClientMessage(info=total_info))
+        except:
+            fail_count += 1
+        try:
+            received_info = stubs[2].SendMessageClient(chat_pb2.ClientMessage(info=total_info))
+        except:
+            fail_count += 1
+        if fail_count == 3:
             return 1
         return self.send_message_processing(received_info)
     
@@ -158,16 +191,21 @@ class Client:
             int: 0 if the operation was successful, 1 if there was a failure.
         """
         # send server request to view messages from username and process response from there
+        fail_count = 0
         try:
             received_info = stubs[0].ViewMessageClient(chat_pb2.ClientMessage(info=username))
         except:
-            try:
-                received_info = stubs[1].ViewMessageClient(chat_pb2.ClientMessage(info=username))
-            except:
-                try:
-                    received_info = stubs[2].ViewMessageClient(chat_pb2.ClientMessage(info=username))
-                except:
-                    return 1
+            fail_count += 1
+        try:
+            received_info = stubs[1].ViewMessageClient(chat_pb2.ClientMessage(info=username))
+        except:
+            fail_count += 1
+        try:
+            received_info = stubs[2].ViewMessageClient(chat_pb2.ClientMessage(info=username))
+        except:
+            fail_count += 1
+        if fail_count == 3:
+            return 1
         return self.view_message_processing(received_info)
 
     def login_processing(self, username, received_info: ServerMessage):
@@ -330,6 +368,7 @@ class Client:
         """
         # get list of accounts to login to
         received_list = self.list_accounts(stubs)
+        print(received_list)
         if received_list != 1:
             # if accounts exist on the server, allow users to choose one and login
             accounts = received_list.info.split("\n")

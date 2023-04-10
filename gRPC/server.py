@@ -7,19 +7,16 @@ import numpy as np
 
 
 class ChatService(chat_pb2_grpc.ChatServiceServicer):
-    PORT = 5050
-    SERVER_HOST = "127.0.0.1"
-    ADDR = (SERVER_HOST, PORT)
     SEPARATE_CHARACTER = "\n"
 
     USER_LOCK = threading.Lock()
 
-    USERS = {}
-
     LISTEN_FLAG = True
 
-    conn = sqlite3.connect("user_database", check_same_thread=False)
-    c = conn.cursor()
+    def start_db(self, db):
+        self.conn = sqlite3.connect(db, check_same_thread=False)
+        self.c = self.conn.cursor()
+
 
     def is_valid_user(self, username: str):
         self.c.execute(
@@ -72,8 +69,6 @@ class ChatService(chat_pb2_grpc.ChatServiceServicer):
                 return chat_pb2.ServerMessage(
                     operation=chat_pb2.ACCOUNT_ALREADY_EXISTS, info=""
                 )
-            new_user = User(request.info)
-            self.USERS[request.info] = new_user
             self.c.execute(
                 """
           INSERT INTO users (user_name, incoming_messages)
